@@ -13,7 +13,7 @@ applyTo: "change log.md"
 - Sub-heading per release: `## <semver>` (e.g. `## 0.1.13`)
 - Bullet entries use `*` (not `-`) for consistency with the existing entries.
 - No date stamps on release headings.
-- Unreleased / in-progress work goes in the **last section** at the bottom of the file, titled with the next version number. Do not use a "Unreleased" or "WIP" label.
+- Unreleased / in-progress work goes in the **first section** at the top of the file, titled with the next version number. Do not use an "Unreleased" or "WIP" label.
 
 ## Content rules
 - One bullet per user-visible change (feature, fix, or behavioral change).

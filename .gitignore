@@ -15,6 +15,8 @@ archive/
 .vscode/*
 !.vscode/tasks.json
 Backlog.md
+*.code-workspace
+ui-icons.txt
 *.user
 *.suo
 *.userosscache
