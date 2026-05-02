@@ -268,7 +268,7 @@ namespace AutoTerrainDesignations
                 ? AutoDepthDesignation.GetTowerExcavatorPriority(mineTower) ?? GetCommonExcavatorMiningFocus(mineTower)
                 : null;
 
-            var cardsRow = new Row().Gap(2.pt());
+            var cardsRow = new Row().Gap(2.pt()).AlignItemsStretch();
             var priorityButtons = new List<(LooseProductProto Product, ButtonIcon Button, ColorRgba Color)>();
 
             void RefreshPriorityButtons()
@@ -364,7 +364,18 @@ namespace AutoTerrainDesignations
                 
                 cardsRow.Add(card);
             }
-            col.Add(cardsRow);
+            if (results.Count > 4)
+            {
+                var cardsScroll = new ScrollRow().AlignSelfStretch();
+                cardsScroll.ScrollerAuto().PreventResizeForScroller();
+                cardsRow.RootElement.style.marginBottom = 18;
+                cardsScroll.Add(cardsRow);
+                col.Add(cardsScroll);
+            }
+            else
+            {
+                col.Add(cardsRow);
+            }
         }
 
         private static string FormatAmount(float value)

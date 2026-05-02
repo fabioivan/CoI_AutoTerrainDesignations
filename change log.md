@@ -5,6 +5,7 @@ Kayser's AutoTerrainDesignations
 ## 0.2.1
 * Added the mod marker/version tooltip to both inspector panels.
 * Made the Ore Composition panel explicitly collapsible again while keeping it open by default.
+* Added horizontal scrolling to Ore Composition cards so towers with many ore products no longer overflow the inspector column.
 * Fixed the Ore Composition panel so it can populate for custom `IAreaManagingTower` implementations; excavator priority controls remain limited to vanilla mine towers.
 * Fixed clearing terrain designations so it only removes mining designations and preserves other designation types such as forestry. (*Placing* mining designations will still overwrite other designations.)
 
