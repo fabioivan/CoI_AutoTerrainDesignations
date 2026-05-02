@@ -32,6 +32,8 @@ public sealed class AutoTerrainDesignationsMod : IMod, IDisposable
 
     public static string ModVersion { get; private set; } = "?";
 
+    public static string ModMarker => $"Kayser's AutoTerrainDesignations v{ModVersion}";
+
     public ModJsonConfig JsonConfig { get; }
 
     public AutoTerrainDesignationsMod(ModManifest manifest)

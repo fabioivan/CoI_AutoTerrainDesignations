@@ -115,7 +115,7 @@ namespace AutoTerrainDesignations
 
                 var orePanel = new PanelWithHeader()
                     .Title(new LocStrFormatted("Ore Composition"),
-                           new LocStrFormatted("Ore resources within this tower's current mining designations. (Does not account for potential landslides.)"));
+                           new LocStrFormatted($"Ore resources within this tower's current mining designations. (Does not account for potential landslides.) [{AutoTerrainDesignationsMod.ModMarker}]"));
 
                 orePanel.Header.Add(new ButtonIcon(Button.General,
                     "Assets/Unity/UserInterface/General/Repeat.svg",
@@ -165,7 +165,7 @@ namespace AutoTerrainDesignations
 
             var orePanel = new PanelWithHeader()
                 .Title(new LocStrFormatted("Ore Composition"),
-                       new LocStrFormatted("Ore resources within this tower's current mining designations. (Does not account for potential landslides.)"));
+                       new LocStrFormatted($"Ore resources within this tower's current mining designations. (Does not account for potential landslides.) [{AutoTerrainDesignationsMod.ModMarker}]"));
 
             orePanel.Header.Add(new ButtonIcon(Button.General,
                 "Assets/Unity/UserInterface/General/Repeat.svg",

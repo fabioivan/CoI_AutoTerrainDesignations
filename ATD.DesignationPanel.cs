@@ -182,7 +182,7 @@ namespace AutoTerrainDesignations
 
             var panel = new PanelWithHeader()
                 .Title(new LocStrFormatted("Terrain Designations"),
-                       new LocStrFormatted($"Create automatic terrain designations for this tower. [Kayser's AutoTerrainDesignations v{AutoTerrainDesignationsMod.ModVersion}]"));
+                       new LocStrFormatted($"Create automatic terrain designations for this tower. [{AutoTerrainDesignationsMod.ModMarker}]"));
             panel.Collapsed(false);
             panel.BodyAdd(contentRow);
 

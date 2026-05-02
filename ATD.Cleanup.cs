@@ -16,27 +16,29 @@ namespace AutoTerrainDesignations
         {
             if (s_desigManager == null) return;
 
-            var area = tower.Area;
-            if (area.IsEmpty) return;
-
-            var bbMin = area.BoundingBoxMin;
-            var bbMax = area.BoundingBoxMax;
-
-            int minX = TerrainDesignation.GetOrigin(bbMin).X;
-            int minY = TerrainDesignation.GetOrigin(bbMin).Y;
-            int maxX = TerrainDesignation.GetOrigin(new Tile2i(bbMax.X - 1, bbMax.Y - 1)).X;
-            int maxY = TerrainDesignation.GetOrigin(new Tile2i(bbMax.X - 1, bbMax.Y - 1)).Y;
-
-            for (int y = minY; y <= maxY; y += 4)
+            var originsToRemove = new List<Tile2i>();
+            foreach (TerrainDesignation designation in tower.ManagedDesignations)
             {
-                for (int x = minX; x <= maxX; x += 4)
+                if (IsMiningDesignation(designation))
                 {
-                    var origin = new Tile2i(x, y);
-                    if (area.ContainsTile(origin) || area.ContainsTile(origin.AddX(3))
-                        || area.ContainsTile(origin.AddY(3)) || area.ContainsTile(origin.AddXy(3)))
-                        s_desigManager.RemoveDesignation(origin);
+                    originsToRemove.Add(designation.OriginTileCoord);
                 }
             }
+
+            foreach (Tile2i origin in originsToRemove)
+            {
+                s_desigManager.RemoveDesignation(origin);
+            }
+        }
+
+        private static bool IsMiningDesignation(TerrainDesignation designation)
+        {
+            if (s_miningProto != null && designation.Prototype == s_miningProto)
+            {
+                return true;
+            }
+
+            return designation.Prototype.Id.Value == "MiningDesignator";
         }
 
         internal static void ClearDesignationsForTower(IAreaManagingTower tower)
@@ -54,7 +56,7 @@ namespace AutoTerrainDesignations
             var fulfilledOrigins = new List<Tile2i>();
             foreach (TerrainDesignation designation in tower.ManagedDesignations)
             {
-                if (designation.IsFulfilled)
+                if (IsMiningDesignation(designation) && designation.IsFulfilled)
                 {
                     fulfilledOrigins.Add(designation.OriginTileCoord);
                 }
@@ -76,7 +78,7 @@ namespace AutoTerrainDesignations
             var remainingOrigins = new HashSet<Tile2i>();
             foreach (TerrainDesignation designation in tower.ManagedDesignations)
             {
-                if (!designation.IsFulfilled)
+                if (IsMiningDesignation(designation) && !designation.IsFulfilled)
                 {
                     remainingOrigins.Add(designation.OriginTileCoord);
                 }

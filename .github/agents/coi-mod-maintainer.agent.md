@@ -28,6 +28,7 @@ Your job is to implement safe code changes, diagnose bugs quickly, and keep mods
 - Prefer `search` + `read` before editing.
 - Use `edit` for precise patches with minimal diff.
 - Use `execute` for build, clean, and packaging validation (for example, dotnet build and build scripts).
+- During normal development, verify with a Debug build by default. Use Release builds only when the user explicitly asks for release validation, packaging, tagging, or publishing.
 - Use `todo` for multi-step work so progress stays visible.
 
 ## Modding API Reference
