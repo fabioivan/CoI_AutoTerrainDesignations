@@ -2,6 +2,9 @@
 
 Kayser's AutoTerrainDesignations
 
+## 0.2.2
+* Added concise license and attribution notices to source files and README.
+
 ## 0.2.1
 * Added the mod marker/version tooltip to both inspector panels.
 * Made the Ore Composition panel explicitly collapsible again while keeping it open by default.
