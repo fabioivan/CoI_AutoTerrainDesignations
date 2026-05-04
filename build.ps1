@@ -68,8 +68,7 @@ $filesToInclude = @(
     'Thumbnail.png',
     'changelog.txt',
     'readme.md',
-    'LICENSE',
-    'settings.json'
+    'LICENSE'
 )
 
 foreach ($file in $filesToInclude) {

@@ -23,6 +23,8 @@ namespace AutoTerrainDesignations
         private static float[] s_minBottomOreDensityByLevel;
         private static float[] s_minOrePurityByLevel;
         private static int[] s_minComponentSizeByLevel;
+        private const string SETTINGS_FILE_NAME = "ATDsettings.json";
+
         private static bool s_settingsLoadAttempted;
         private static string? s_loadedSettingsPath;
 
@@ -97,19 +99,46 @@ namespace AutoTerrainDesignations
                 string? settingsPath = ResolveSettingsPath();
                 if (string.IsNullOrWhiteSpace(settingsPath) || !File.Exists(settingsPath))
                 {
-                    s_loadedSettingsPath = null;
-                    Log.Warning("[ATD] settings.json not found next to mod assembly or parent mod folder; using built-in defaults.");
+                    // File absent — generate defaults next to the mod folder so users can customise
+                    string? genPath = SavedSettingsPath;
+                    if (!string.IsNullOrWhiteSpace(genPath))
+                    {
+                        try
+                        {
+                            File.WriteAllText(genPath, BuildSettingsJson());
+                            s_loadedSettingsPath = genPath;
+                            Log.Warning($"[ATD] ATDsettings.json not found \u2014 defaults written to: {genPath}");
+                        }
+                        catch (Exception writeEx)
+                        {
+                            s_loadedSettingsPath = null;
+                            Log.Warning($"[ATD] Could not write default ATDsettings.json: {writeEx.Message}");
+                        }
+                    }
+                    else
+                    {
+                        s_loadedSettingsPath = null;
+                        Log.Warning("[ATD] ATDsettings.json not found and mod root path is unknown; using built-in defaults.");
+                    }
                     return;
                 }
 
                 string json = File.ReadAllText(settingsPath);
-                ParseSettingsJson(json);
+                string? fileVersion = ParseSettingsJson(json);
                 s_loadedSettingsPath = settingsPath;
+
+                // If the file predates the current version, rewrite it so new keys and
+                // the updated settingsVersion are present while preserving user values.
+                if (fileVersion != AutoTerrainDesignationsMod.ModVersion)
+                {
+                    if (TrySaveSettings(out string migratedPath))
+                        Log.Warning($"[ATD] ATDsettings.json migrated to version {AutoTerrainDesignationsMod.ModVersion}: {migratedPath}");
+                }
             }
             catch (Exception ex)
             {
                 s_loadedSettingsPath = null;
-                Log.Warning($"[ATD] Failed to load settings.json: {ex.Message}");
+                Log.Warning($"[ATD] Failed to load ATDsettings.json: {ex.Message}");
             }
         }
 
@@ -165,8 +194,8 @@ namespace AutoTerrainDesignations
 
             foreach (string root in rootDirs)
             {
-                // Prefer directories that look like an actual mod root (manifest + settings),
-                // but still allow direct sibling settings.json next to a loaded DLL path.
+                // Prefer directories that look like an actual mod root (manifest + ATDsettings),
+                // but still allow direct sibling ATDsettings.json next to a loaded DLL path.
                 DirectoryInfo? dir;
                 try
                 {
@@ -183,7 +212,7 @@ namespace AutoTerrainDesignations
                     string candidateManifest;
                     try
                     {
-                        candidateSettings = Path.Combine(dir.FullName, "settings.json");
+                        candidateSettings = Path.Combine(dir.FullName, SETTINGS_FILE_NAME);
                         candidateManifest = Path.Combine(dir.FullName, "manifest.json");
                     }
                     catch
@@ -254,9 +283,10 @@ namespace AutoTerrainDesignations
             }
         }
 
-        private static void ParseSettingsJson(string json)
+        private static string? ParseSettingsJson(string json)
         {
             // Simple JSON parser for our specific structure
+            string? parsedVersion = null;
             try
             {
                 // Extract purityLevels object
@@ -306,11 +336,14 @@ namespace AutoTerrainDesignations
                 int? corridorClearance = ParseInt(json, "minCorridorClearance");
                 if (corridorClearance.HasValue)
                     AutoTerrainDesignationsMod.SetMinCorridorClearance(corridorClearance.Value);
+
+                parsedVersion = ParseString(json, "settingsVersion");
             }
             catch (Exception ex)
             {
-                Log.Warning($"[ATD] Error parsing settings.json: {ex.Message}");
+                Log.Warning($"[ATD] Error parsing ATDsettings.json: {ex.Message}");
             }
+            return parsedVersion;
         }
 
         private static float[]? ParseFloatArray(string json, string key)
@@ -402,6 +435,158 @@ namespace AutoTerrainDesignations
                 return (false, null);
             }
             catch { return (false, null); }
+        }
+
+        private static string? ParseString(string json, string key)
+        {
+            try
+            {
+                int idx = json.IndexOf($"\"{key}\":");
+                if (idx < 0) return null;
+                int valStart = json.IndexOf('"', idx + key.Length + 3);
+                if (valStart < 0) return null;
+                valStart++;
+                int valEnd = json.IndexOf('"', valStart);
+                if (valEnd < 0) return null;
+                return json.Substring(valStart, valEnd - valStart);
+            }
+            catch { return null; }
+        }
+
+        // -----------------------------------------------------------------------
+        // Settings serialisation helpers
+        // -----------------------------------------------------------------------
+
+        private static string FloatToJsonStr(float v)
+            => v.ToString("G", CultureInfo.InvariantCulture);
+
+        private static string FloatArrayToJson(float[] a)
+        {
+            var sb = new System.Text.StringBuilder("[");
+            for (int i = 0; i < a.Length; i++)
+            {
+                if (i > 0) sb.Append(", ");
+                sb.Append(FloatToJsonStr(a[i]));
+            }
+            sb.Append("]");
+            return sb.ToString();
+        }
+
+        private static string IntArrayToJson(int[] a)
+        {
+            var sb = new System.Text.StringBuilder("[");
+            for (int i = 0; i < a.Length; i++)
+            {
+                if (i > 0) sb.Append(", ");
+                sb.Append(a[i]);
+            }
+            sb.Append("]");
+            return sb.ToString();
+        }
+
+        /// <summary>
+        /// Serialises the current in-memory settings to a JSON string in the same
+        /// format as ATDsettings.json, including all _comment_ documentation keys
+        /// and a <c>settingsVersion</c> stamp.
+        /// </summary>
+        internal static string BuildSettingsJson()
+        {
+            string depthStr = AutoTerrainDesignationsMod.MaxDepthToDigTo.HasValue
+                ? AutoTerrainDesignationsMod.MaxDepthToDigTo.Value.ToString(CultureInfo.InvariantCulture)
+                : "null";
+
+            var sb = new System.Text.StringBuilder();
+            sb.AppendLine("{");
+            sb.AppendLine($"  \"settingsVersion\": \"{AutoTerrainDesignationsMod.ModVersion}\",");
+            sb.AppendLine();
+            sb.AppendLine("  \"_comment\": \"AutoTerrainDesignations settings. These values set the defaults loaded at game start. Most parameters below can also be changed per mine tower directly in-game via the tower inspector \u2014 this file is for your convenience so you don't have to adjust them every new save.\",");
+            sb.AppendLine();
+            sb.AppendLine("  \"_comment_batchSize\": \"How many designations are placed per coroutine frame before yielding to the game. Lower values keep the game more responsive during large scans; higher values complete scans faster. While paused, the effective batch size is boosted by x4 and clamped. Absolute max: 200. Default: 30.\",");
+            sb.AppendLine($"  \"batchSize\": {s_batchSize},");
+            sb.AppendLine();
+            sb.AppendLine("  \"_comment_maxSlopeHeightDiff\": \"Default starting value for the Max Slope setting on each mine tower. Controls the maximum allowed height difference between adjacent designation corners during slope smoothing. Lower values produce flatter designations; higher values allow steeper steps. Can be adjusted per tower in-game. Min 1, max 3. Default: 1.\",");
+            sb.AppendLine($"  \"maxSlopeHeightDiff\": {AutoTerrainDesignationsMod.MaxHeightDiff},");
+            sb.AppendLine();
+            sb.AppendLine("  \"_comment_rampWidth\": \"Default starting value for the Ramp Width setting on each mine tower. Width of access ramps generated at the edge of designations, in tiles. 0 disables ramp generation entirely. Can be adjusted per tower in-game. Allowed range: 0-5. Default: 2.\",");
+            sb.AppendLine($"  \"rampWidth\": {AutoTerrainDesignationsMod.RampWidth},");
+            sb.AppendLine();
+            sb.AppendLine("  \"_comment_maxLayersToExcavate\": \"Default starting value for the Max Layers setting on each mine tower. Maximum number of terrain layers to excavate from the surface downward. 0 = no limit. Can be adjusted per tower in-game. Default: 50.\",");
+            sb.AppendLine($"  \"maxLayersToExcavate\": {AutoTerrainDesignationsMod.MaxLayersToExcavate},");
+            sb.AppendLine();
+            sb.AppendLine("  \"_comment_maxDepthToDigTo\": \"Default starting value for the Max Depth setting on each mine tower. Absolute minimum terrain elevation (in tiles) the designation will dig down to. null = no lower-bound limit. Can be adjusted per tower in-game. Default: null.\",");
+            sb.AppendLine($"  \"maxDepthToDigTo\": {depthStr},");
+            sb.AppendLine();
+            sb.AppendLine("  \"_comment_orePurityLevel\": \"Default starting value for the Ore Purity Level on each mine tower (0=Off, 1=Low, 2=Med, 3=High, 4=Max). Controls how aggressively poor-quality tiles and sparse ore are excluded. Can be adjusted per tower in-game. Default: 0.\",");
+            sb.AppendLine($"  \"orePurityLevel\": {AutoTerrainDesignationsMod.OrePurityLevel},");
+            sb.AppendLine();
+            sb.AppendLine("  \"_comment_minCorridorClearance\": \"Global default corridor clearance used when connecting separated ore components and enforcing passability. Each mine tower can override this individually via the inspector. 0 = disabled \u2014 components are left separate, no corridors or hole-filling (for vehicle-less excavation mods); 1 = 1-tile corridors (small and medium vehicles); 2 = 2-tile corridors (mega vehicles). Default: 2.\",");
+            sb.AppendLine($"  \"minCorridorClearance\": {AutoTerrainDesignationsMod.MinCorridorClearance},");
+            sb.AppendLine();
+            sb.AppendLine("  \"purityLevels\": {");
+            sb.AppendLine("    \"_comment\": \"Thresholds applied at each Ore Purity Level. Arrays have 5 entries: [Off, Low, Med, High, Max]. Off (index 0) should always be 0 / no filtering. These define what each level means \u2014 edit if you want to retune the purity steps.\",");
+            sb.AppendLine();
+            sb.AppendLine("    \"_comment_minOreHeightByLevel\": \"Minimum ore thickness (in terrain tiles) a tile must contain to be included in the designation. Tiles below this threshold are excluded entirely. Default: [0.0, 0.5, 1.0, 2.0, 3.0].\",");
+            sb.AppendLine($"    \"minOreHeightByLevel\": {FloatArrayToJson(s_minOreHeightByLevel)},");
+            sb.AppendLine();
+            sb.AppendLine("    \"_comment_minBottomOreDensityByLevel\": \"Minimum ore density (0.0-1.0) a depth zone must have to be excavated. For each ore interval below the first, the zone from the previous ore's bottom to this ore's bottom is evaluated: density = ore_thickness / zone_thickness. If density falls below this threshold, digging stops there. Default: [0.0, 0.25, 0.5, 0.75, 1.0].\",");
+            sb.AppendLine($"    \"minBottomOreDensityByLevel\": {FloatArrayToJson(s_minBottomOreDensityByLevel)},");
+            sb.AppendLine();
+            sb.AppendLine("    \"_comment_minOrePurityRatioByLevel\": \"Minimum ratio of ore thickness to total column thickness (0.0-1.0). Tiles where ore makes up less than this fraction of the full terrain column (down to bedrock) are excluded as too contaminated with overburden. Default: [0.0, 0.2, 0.4, 0.6, 0.8].\",");
+            sb.AppendLine($"    \"minOrePurityRatioByLevel\": {FloatArrayToJson(s_minOrePurityByLevel)},");
+            sb.AppendLine();
+            sb.AppendLine("    \"_comment_minComponentSizeByLevel\": \"Minimum number of connected designation tiles a cluster must have to survive the isolation filter. Smaller clusters are pruned as insignificant. Default: [0, 3, 5, 8, 13].\",");
+            sb.AppendLine($"    \"minComponentSizeByLevel\": {IntArrayToJson(s_minComponentSizeByLevel)}");
+            sb.AppendLine("  }");
+            sb.Append("}");
+            return sb.ToString();
+        }
+
+        /// <summary>
+        /// The file path where settings will be saved.  Returns the path the settings were
+        /// loaded from (or previously generated to), or falls back to
+        /// <c>ATDsettings.json</c> in the mod root directory.
+        /// </summary>
+        internal static string? SavedSettingsPath
+        {
+            get
+            {
+                if (!string.IsNullOrWhiteSpace(s_loadedSettingsPath))
+                    return s_loadedSettingsPath;
+                if (!string.IsNullOrWhiteSpace(s_modRootDirectoryPath))
+                    return Path.Combine(s_modRootDirectoryPath, SETTINGS_FILE_NAME);
+                return null;
+            }
+        }
+
+        /// <summary>
+        /// Serialises current in-memory settings to <see cref="SavedSettingsPath"/> and
+        /// updates <c>s_loadedSettingsPath</c> on success.
+        /// </summary>
+        /// <param name="savedPath">Receives the path written on success, or <see cref="string.Empty"/> on failure.</param>
+        /// <returns><c>true</c> if the file was written successfully.</returns>
+        internal static bool TrySaveSettings(out string savedPath)
+        {
+            string? target = SavedSettingsPath;
+            if (string.IsNullOrWhiteSpace(target))
+            {
+                savedPath = string.Empty;
+                Log.Warning("[ATD] Cannot save ATDsettings.json: mod root path is unknown.");
+                return false;
+            }
+
+            try
+            {
+                File.WriteAllText(target, BuildSettingsJson());
+                s_loadedSettingsPath = target;
+                savedPath = target;
+                return true;
+            }
+            catch (Exception ex)
+            {
+                savedPath = string.Empty;
+                Log.Warning($"[ATD] Failed to save ATDsettings.json: {ex.Message}");
+                return false;
+            }
         }
     }
 }
