@@ -117,4 +117,12 @@ public sealed class AtdConsoleCommands
             return $"[ATD] Level {level} out of range (0-{AutoDepthDesignation.PurityLevelCount - 1}).";
         return $"[ATD] minComponentSize[{level}] set to {value}.";
     }
+
+    [ConsoleCommand(false, false, "Saves current ATD global settings to ATDsettings.json in the mod folder.", null)]
+    private string atdSaveSettings()
+    {
+        if (AutoDepthDesignation.TrySaveSettings(out string path))
+            return $"[ATD] Settings saved to: {path}";
+        return "[ATD] Failed to save settings. Check the log for details.";
+    }
 }
