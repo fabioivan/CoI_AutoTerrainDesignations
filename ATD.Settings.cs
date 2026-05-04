@@ -337,6 +337,14 @@ namespace AutoTerrainDesignations
                 if (corridorClearance.HasValue)
                     AutoTerrainDesignationsMod.SetMinCorridorClearance(corridorClearance.Value);
 
+                bool? terrainDesignationsPanelCollapsed = ParseBool(json, "terrainDesignationsPanelCollapsed");
+                if (terrainDesignationsPanelCollapsed.HasValue)
+                    AutoTerrainDesignationsMod.SetTerrainDesignationsPanelCollapsed(terrainDesignationsPanelCollapsed.Value);
+
+                bool? oreCompositionPanelCollapsed = ParseBool(json, "oreCompositionPanelCollapsed");
+                if (oreCompositionPanelCollapsed.HasValue)
+                    AutoTerrainDesignationsMod.SetOreCompositionPanelCollapsed(oreCompositionPanelCollapsed.Value);
+
                 parsedVersion = ParseString(json, "settingsVersion");
             }
             catch (Exception ex)
@@ -437,6 +445,23 @@ namespace AutoTerrainDesignations
             catch { return (false, null); }
         }
 
+        private static bool? ParseBool(string json, string key)
+        {
+            try
+            {
+                int idx = json.IndexOf($"\"{key}\":");
+                if (idx < 0) return null;
+                int valStart = json.IndexOf(':', idx) + 1;
+                while (valStart < json.Length && (json[valStart] == ' ' || json[valStart] == '\t' || json[valStart] == '\r' || json[valStart] == '\n')) valStart++;
+                if (valStart + 4 <= json.Length && string.Compare(json, valStart, "true", 0, 4, StringComparison.OrdinalIgnoreCase) == 0)
+                    return true;
+                if (valStart + 5 <= json.Length && string.Compare(json, valStart, "false", 0, 5, StringComparison.OrdinalIgnoreCase) == 0)
+                    return false;
+                return null;
+            }
+            catch { return null; }
+        }
+
         private static string? ParseString(string json, string key)
         {
             try
@@ -459,6 +484,8 @@ namespace AutoTerrainDesignations
 
         private static string FloatToJsonStr(float v)
             => v.ToString("G", CultureInfo.InvariantCulture);
+
+        private static string BoolToJsonStr(bool v) => v ? "true" : "false";
 
         private static string FloatArrayToJson(float[] a)
         {
@@ -521,6 +548,12 @@ namespace AutoTerrainDesignations
             sb.AppendLine();
             sb.AppendLine("  \"_comment_minCorridorClearance\": \"Global default corridor clearance used when connecting separated ore components and enforcing passability. Each mine tower can override this individually via the inspector. 0 = disabled \u2014 components are left separate, no corridors or hole-filling (for vehicle-less excavation mods); 1 = 1-tile corridors (small and medium vehicles); 2 = 2-tile corridors (mega vehicles). Default: 2.\",");
             sb.AppendLine($"  \"minCorridorClearance\": {AutoTerrainDesignationsMod.MinCorridorClearance},");
+            sb.AppendLine();
+            sb.AppendLine("  \"_comment_terrainDesignationsPanelCollapsed\": \"Default collapsed state for the Terrain Designations panel when a mine tower inspector is created. false = expanded by default, true = collapsed by default. Default: false.\",");
+            sb.AppendLine($"  \"terrainDesignationsPanelCollapsed\": {BoolToJsonStr(AutoTerrainDesignationsMod.TerrainDesignationsPanelCollapsed)},");
+            sb.AppendLine();
+            sb.AppendLine("  \"_comment_oreCompositionPanelCollapsed\": \"Default collapsed state for the Ore Composition panel when a mine tower inspector is created. false = expanded by default, true = collapsed by default. Default: false.\",");
+            sb.AppendLine($"  \"oreCompositionPanelCollapsed\": {BoolToJsonStr(AutoTerrainDesignationsMod.OreCompositionPanelCollapsed)},");
             sb.AppendLine();
             sb.AppendLine("  \"purityLevels\": {");
             sb.AppendLine("    \"_comment\": \"Thresholds applied at each Ore Purity Level. Arrays have 5 entries: [Off, Low, Med, High, Max]. Off (index 0) should always be 0 / no filtering. These define what each level means \u2014 edit if you want to retune the purity steps.\",");

@@ -31,6 +31,8 @@ public sealed class AtdConsoleCommands
         sb.AppendLine($"  MaxDepthToDigTo       = {AutoTerrainDesignationsMod.MaxDepthToDigTo?.ToString() ?? "-"}");
         sb.AppendLine($"  OrePurityLevel        = {AutoTerrainDesignationsMod.OrePurityLevel}");
         sb.AppendLine($"  MinCorridorClearance  = {AutoTerrainDesignationsMod.MinCorridorClearance}");
+        sb.AppendLine($"  TerrainPanelCollapsed = {AutoTerrainDesignationsMod.TerrainDesignationsPanelCollapsed}");
+        sb.AppendLine($"  OrePanelCollapsed     = {AutoTerrainDesignationsMod.OreCompositionPanelCollapsed}");
         sb.Append(AutoDepthDesignation.FormatPurityArrays());
         return sb.ToString();
     }
@@ -94,6 +96,26 @@ public sealed class AtdConsoleCommands
         return $"[ATD] MinCorridorClearance set to {AutoTerrainDesignationsMod.MinCorridorClearance}.";
     }
 
+    [ConsoleCommand(false, false, "Sets whether the Terrain Designations panel starts collapsed by default (true/false, on/off, 1/0).", null)]
+    private string atdSetTerrainDesignationsPanelCollapsed(string value)
+    {
+        if (!TryParseConsoleBool(value, out bool parsed))
+            return $"[ATD] Invalid value '{value}'. Use true/false, on/off, yes/no, or 1/0.";
+
+        AutoTerrainDesignationsMod.SetTerrainDesignationsPanelCollapsed(parsed);
+        return $"[ATD] TerrainDesignationsPanelCollapsed set to {AutoTerrainDesignationsMod.TerrainDesignationsPanelCollapsed}.";
+    }
+
+    [ConsoleCommand(false, false, "Sets whether the Ore Composition panel starts collapsed by default (true/false, on/off, 1/0).", null)]
+    private string atdSetOreCompositionPanelCollapsed(string value)
+    {
+        if (!TryParseConsoleBool(value, out bool parsed))
+            return $"[ATD] Invalid value '{value}'. Use true/false, on/off, yes/no, or 1/0.";
+
+        AutoTerrainDesignationsMod.SetOreCompositionPanelCollapsed(parsed);
+        return $"[ATD] OreCompositionPanelCollapsed set to {AutoTerrainDesignationsMod.OreCompositionPanelCollapsed}.";
+    }
+
     [ConsoleCommand(false, false, "Sets minBottomOreDensity for a purity level (0-4), clamped 0-1. Minimum ore/(ore+waste) ratio a zone must have to be included. E.g. atd_set_min_bottom_ore_density 2 0.25", null)]
     private string atdSetMinBottomOreDensity(int level, float value)
     {
@@ -124,5 +146,27 @@ public sealed class AtdConsoleCommands
         if (AutoDepthDesignation.TrySaveSettings(out string path))
             return $"[ATD] Settings saved to: {path}";
         return "[ATD] Failed to save settings. Check the log for details.";
+    }
+
+    private static bool TryParseConsoleBool(string value, out bool parsed)
+    {
+        switch ((value ?? string.Empty).Trim().ToLowerInvariant())
+        {
+            case "true":
+            case "on":
+            case "yes":
+            case "1":
+                parsed = true;
+                return true;
+            case "false":
+            case "off":
+            case "no":
+            case "0":
+                parsed = false;
+                return true;
+            default:
+                parsed = false;
+                return false;
+        }
     }
 }

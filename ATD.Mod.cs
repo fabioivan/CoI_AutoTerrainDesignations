@@ -119,6 +119,22 @@ public sealed class AutoTerrainDesignationsMod : IMod, IDisposable
         MinCorridorClearance = Math.Max(0, Math.Min(2, value));
     }
 
+    /// <summary>Default collapsed state for the Terrain Designations inspector panel.</summary>
+    public static bool TerrainDesignationsPanelCollapsed { get; private set; } = false;
+
+    public static void SetTerrainDesignationsPanelCollapsed(bool value)
+    {
+        TerrainDesignationsPanelCollapsed = value;
+    }
+
+    /// <summary>Default collapsed state for the Ore Composition inspector panel.</summary>
+    public static bool OreCompositionPanelCollapsed { get; private set; } = false;
+
+    public static void SetOreCompositionPanelCollapsed(bool value)
+    {
+        OreCompositionPanelCollapsed = value;
+    }
+
     public void Initialize(DependencyResolver resolver, bool gameWasLoaded)
     {
         try
