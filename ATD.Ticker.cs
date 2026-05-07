@@ -4,7 +4,7 @@
 //
 // Unofficial mod for Captain of Industry. Captain of Industry, MaFi Games, and
 // related trademarks, code, and assets belong to MaFi Games. This repository is
-// intended to contain only original mod code/configuration; if MaFi Games material
+// intended to contain only original mod code/modification; if MaFi Games material
 // is included by mistake, I intend to correct it promptly upon discovery or notice.
 using UnityEngine;
 
@@ -16,6 +16,13 @@ public sealed class AutoTerrainDesignationsTicker : MonoBehaviour
 
     private void Update()
     {
+        // Corner designation input — runs every frame, before the 1-second throttle.
+        try
+        {
+            AutoDepthDesignation.HandleCornerModeInput();
+        }
+        catch { }
+
         _syncTimer += Time.deltaTime;
         if (_syncTimer < 1f)
             return;
@@ -23,6 +30,15 @@ public sealed class AutoTerrainDesignationsTicker : MonoBehaviour
         try
         {
             AutoDepthDesignation.ApplyPriorityToNewExcavators();
+        }
+        catch { }
+    }
+
+    private void OnGUI()
+    {
+        try
+        {
+            AutoDepthDesignation.DrawCornerModeHud();
         }
         catch { }
     }

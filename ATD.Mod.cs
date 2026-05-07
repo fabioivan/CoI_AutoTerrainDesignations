@@ -19,6 +19,7 @@ using Mafi.Core.Console;
 using Mafi.Core.Terrain.Designation;
 using Mafi.Core.Terrain.Props;
 using Mafi.Core.World;
+using Mafi.Unity.InputControl;
 using UnityEngine;
 
 namespace AutoTerrainDesignations;
@@ -166,6 +167,13 @@ public sealed class AutoTerrainDesignationsMod : IMod, IDisposable
             UnityEngine.Object.DontDestroyOnLoad(ticker.gameObject);
             AutoDepthDesignation.SetModRootDirectoryPath(Manifest.RootDirectoryPath);
             AutoDepthDesignation.Initialize(desigManager, protosDb, worldMapManager, ticker, entitiesManager, terrainPropsManager);
+
+            // Corner designation mode — TerrainCursor may only be available on the Unity side;
+            // fail gracefully if it isn't resolvable.
+            TerrainCursor? terrainCursor = null;
+            try { terrainCursor = resolver.Resolve<TerrainCursor>(); }
+            catch (Exception ex2) { Debug.LogWarning("[ATD] TerrainCursor not available: " + ex2.Message); }
+            AutoDepthDesignation.InitializeCornerMode(terrainCursor);
         }
         catch (Exception ex)
         {

@@ -1,3 +1,11 @@
+v0.2.5-alpha1 | 2026-05-07
+* Added **Corner Designation** placement mode — press **K** while in M-mode to activate
+    - **LMB drag** fills a rectangular area with a checkerboard of outer/inner corner designations that form a continuous diagonal slope
+    - **R** rotates among the four corner orientations (NW, NE, SE, SW)
+    - **K** again toggles between outer (+1) and inner (−1) corner type
+    - **Q/E** height bias from the active mining tool is respected, so the placed slope follows the current height offset
+    - Corner mode exits automatically when M-mode is deactivated
+
 v0.2.4 | 2026-05-04
 * Settings file renamed from **settings.json** to **ATDsettings.json** to avoid conflicts with other mods
 * Existing **settings.json** files are still read as a legacy fallback and migrated into the generated **ATDsettings.json** format
