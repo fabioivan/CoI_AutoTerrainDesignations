@@ -17,3 +17,5 @@ However, player can't place these manually. This is what we want to enable.
 What we need (for MVP):
 - Toolbar buttons (1 for inner corner and one for outer, in the Terraforming menu, under a new sub-category "Designations")
 - Clicking buttons should give the player a corner designation in hand, rotatable with R, placable with LMB.
+
+Remaining:

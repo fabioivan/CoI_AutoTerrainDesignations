@@ -134,7 +134,7 @@ namespace AutoTerrainDesignations
                     .Compact()
                     .IconSize(14.px())
                     .MarginLeft(4.pt())
-                    .Tooltip(new LocStrFormatted("Scan ore composition")));
+                    .Tooltip(new LocStrFormatted(AutoTerrainDesignationsMod.Tt("Scan ore composition"))));
 
                 orePanel.BodyAdd(contentCol);
                 mainBody.InsertAt(1, orePanel);
@@ -184,7 +184,7 @@ namespace AutoTerrainDesignations
                 .Compact()
                 .IconSize(14.px())
                 .MarginLeft(4.pt())
-                .Tooltip(new LocStrFormatted("Scan ore composition")));
+                .Tooltip(new LocStrFormatted(AutoTerrainDesignationsMod.Tt("Scan ore composition"))));
 
             orePanel.BodyAdd(contentCol);
             return orePanel;

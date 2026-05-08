@@ -21,20 +21,26 @@ applyTo: "changelog.txt"
 - API additions visible to external modders are documented (e.g. new `AutoTerrainDesignationsApi` methods).
 - Settings file additions are documented with the key name(s) and what they control.
 - Start each bullet with a capital letter; no trailing period.
+- Use neutral, factual language. No marketing or selling tone (avoid words like "polished", "first-class", "powerful", etc.).
 - Use **bold** for setting names and UI control names (e.g. **Ore Purity Level**, **Ramp Width**).
 - Fixes start with `Fixed:` followed by a short description.
 - Sub-bullets are used when a single feature has multiple related details worth calling out.
 
 ## Versioning
 - Version numbers follow `MAJOR.MINOR.PATCH` (currently in `0.x.y` range).
-- Check the manifest version and existing change log entries to determine the current version number.
-- Increment PATCH for bug fixes and minor additions.
-- Increment MINOR for new features or behavioral changes that are noticeable to the user.
-- After a release is packaged (zip exists in `artifacts/` matching the manifest version), start a new entry for the next version.
+- **Local/alpha builds**: Use a letter suffix — `0.2.5a`, `0.2.5b`, etc. Each local package gets the next letter. Both `changelog.txt` and `manifest.json` are updated to match the new letter version.
+- **Public releases**: Collate all lettered alpha entries into a single new version (`0.2.5a + 0.2.5b → 0.2.6`). Increment PATCH for fixes/minor additions, MINOR for noticeable new features. Both `changelog.txt` and `manifest.json` are updated.
+- The version in `changelog.txt` must always match `manifest.json`.
+- Do not propose version changes unless the user asks to package or release.
 
-## Example entry
+## Example entries
 ```
-v0.1.13 | 2026-05-01
-* **Terrain Designations** panel and **Ore Composition** panel can now be embedded in external mod inspectors via `AutoTerrainDesignationsApi.BuildDesignationPanel` and `BuildOreCompositionPanel`
-* Removed `generateRamps` parameter from `CreateDesignationsForTower` API — ramp generation is now always controlled by the per-tower **Ramp Width** setting (0 = disabled)
+v0.2.5b | 2026-05-08
+* Corner designations now snap height and variant to adjacent existing designations
+
+v0.2.5a | 2026-05-01
+* Fixed: ramp generation could place ramps outside the tower area
+
+v0.2.4 | 2026-04-20   ← public release collating 0.2.4a + 0.2.4b
+* ...
 ```

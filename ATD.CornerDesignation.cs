@@ -22,6 +22,9 @@ using Mafi.Core.Terrain;
 using Mafi.Core.Terrain.Designation;
 using Mafi.Unity.InputControl;
 using Mafi.Unity.Terrain.Designation;
+using Mafi.Unity.UiStatic;
+using Mafi.Unity.UiStatic.Cursors;
+using Mafi.Localization;
 using UnityEngine;
 
 namespace AutoTerrainDesignations
@@ -50,14 +53,22 @@ namespace AutoTerrainDesignations
 
         // AOE drag state.
         private static bool s_dragging;
-        private static Tile2i s_dragOrigin;   // snap-aligned tile where LMB went down
-        private static int s_dragBaseHeight;  // surface height + bias at drag start
+        private static Tile2i s_dragOrigin;                  // snap-aligned tile where LMB went down
+        private static int s_dragBaseHeight;                 // height at drag start (snapped or terrain+bias)
+        private static CornerVariant s_dragEffectiveVariant; // variant at drag start (snapped or user-selected)
 
         // True while the player has any terrain designation tool active (M/Z/N-mode).
         private static bool s_designationToolActive;
         // The live TerrainDesignationController instance (needed to read m_heightBias).
         private static object? s_miningController;
         private static System.Reflection.FieldInfo? s_heightBiasField;
+        // The apply sound of the active controller, reflected once on activate.
+        private static object? s_applySound;
+        private static System.Reflection.FieldInfo? s_applySoundField;
+        private static System.Reflection.MethodInfo? s_audioPlayMethod;
+        // The tab-switch sound (F-mode flip) — played when entering K-mode or toggling inner/outer.
+        private static object? s_switchSound;
+        private static System.Reflection.FieldInfo? s_switchSoundField;
 
         // Tiles where ATD just placed a corner designation — protected from one subsequent
         // overwrite by the game's async placement command.
@@ -67,16 +78,20 @@ namespace AutoTerrainDesignations
         private static TerrainDesignationsRenderer? s_desigRenderer;
         private static readonly HashSet<Tile2i> s_previewedTiles = new HashSet<Tile2i>();
 
+        // Custom cursor shown while a valid corner preview is displayed.
+        private static Cursoor? s_cornerCursor;
+
         // Toolbar buttons injected into the game's designation toolboxes (one per ToolType).
-        private static ToolboxItem? s_cornerModeButton;
+        private static ToolboxItem? s_cornerModeButtonOuter; // ExpandScreen as-is
+        private static ToolboxItem? s_cornerModeButtonInner; // ExpandScreen rotated 180°
         private static AreaToolbox? s_activeAreaToolbox;
         private static int s_currentAreaMode;
         private static FieldInfo? s_areaToolboxButtonsField;
         // The designation proto to use when placing corners (switches per active tool).
         private static TerrainDesignationProto? s_activeCornerProto;
         // Per-toolbox state keyed by ToolType int (0=Ramp/Mining, 1=Flat/Dumping, 2=Leveling).
-        private static readonly Dictionary<int, (AreaToolbox toolbox, ToolboxItem button, FieldInfo? buttonsField)>
-            s_toolboxes = new Dictionary<int, (AreaToolbox, ToolboxItem, FieldInfo?)>();
+        private static readonly Dictionary<int, (AreaToolbox toolbox, ToolboxItem outerBtn, ToolboxItem innerBtn, FieldInfo? buttonsField)>
+            s_toolboxes = new Dictionary<int, (AreaToolbox, ToolboxItem, ToolboxItem, FieldInfo?)>();
         private static readonly Dictionary<string, int> s_controllerToToolType = new Dictionary<string, int>
         {
             { "MiningDesignationController",       (int)AreaToolbox.ToolType.Mining },
@@ -87,12 +102,17 @@ namespace AutoTerrainDesignations
         // our calls from the game's own preview calls (which we suppress in corner mode).
         private static bool s_atdPreviewActive;
 
-        internal static void InitializeCornerMode(TerrainCursor? terrainCursor, TerrainDesignationsRenderer? renderer)
+        internal static void InitializeCornerMode(TerrainCursor? terrainCursor, TerrainDesignationsRenderer? renderer, CursorManager? cursorManager)
         {
             s_terrainCursor = terrainCursor;
             s_desigRenderer = renderer;
             s_cornerModeActive = false;
             s_activeCornerVariant = CornerVariant.OriginHigh;
+            if (cursorManager != null)
+            {
+                try { s_cornerCursor = cursorManager.RegisterCursor(CursorsStyles.Add); }
+                catch (Exception ex) { Log.Warning("[ATD] Failed to register corner cursor: " + ex.Message); }
+            }
         }
 
         // Called every frame from AutoTerrainDesignationsTicker.Update().
@@ -103,7 +123,11 @@ namespace AutoTerrainDesignations
             if (Input.GetKeyDown(KeyCode.K))
             {
                 if (s_cornerModeActive)
+                {
                     s_activeCornerVariant = ToggleCornerType(s_activeCornerVariant);
+                    UpdateCornerButtonSelection();
+                    PlaySwitchSound();
+                }
                 else if (s_designationToolActive)
                     EnterCornerMode();
                 return;
@@ -142,28 +166,6 @@ namespace AutoTerrainDesignations
         }
 
         // Called every frame from AutoTerrainDesignationsTicker.OnGUI() — draws the mode status bar.
-        internal static void DrawCornerModeHud()
-        {
-            if (!s_cornerModeActive)
-                return;
-
-            string typeStr = IsOuterVariant(s_activeCornerVariant) ? "Outer" : "Inner";
-            string rotStr  = GetCornerRotationLabel(s_activeCornerVariant);
-            int bias       = GetHeightBias();
-            string biasStr = bias == 0 ? "" : (bias > 0 ? $" +{bias}" : $" {bias}");
-
-            string msg = $"[ATD] Corner: {typeStr} {rotStr}{biasStr}  |  K: toggle inner/outer  |  R: rotate  |  Q/E: height  |  LMB drag: fill area  |  F: exit";
-
-            var style = new GUIStyle(GUI.skin.label)
-            {
-                fontSize = 14,
-                normal = { textColor = Color.white },
-            };
-            // Semi-transparent background so the text is readable on any terrain.
-            GUI.Box(new Rect(6, Screen.height - 44, Screen.width - 12, 32), GUIContent.none);
-            GUI.Label(new Rect(10, Screen.height - 42, Screen.width - 20, 30), msg, style);
-        }
-
         // -- Harmony patch handlers --
 
         // Postfix on TerrainDesignationController.Activate — sets s_miningToolActive when the
@@ -198,11 +200,46 @@ namespace AutoTerrainDesignations
             if (s_controllerToToolType.TryGetValue(typeName, out int toolTypeInt) &&
                 s_toolboxes.TryGetValue(toolTypeInt, out var entry))
             {
-                s_activeAreaToolbox      = entry.toolbox;
-                s_cornerModeButton       = entry.button;
+                s_activeAreaToolbox       = entry.toolbox;
+                s_cornerModeButtonOuter   = entry.outerBtn;
+                s_cornerModeButtonInner   = entry.innerBtn;
                 s_areaToolboxButtonsField = entry.buttonsField;
-                s_currentAreaMode        = 0;
+                s_currentAreaMode         = 0;
             }
+
+            // Reflect m_miningApplySound once per controller type.
+            if (s_applySoundField == null)
+            {
+                Type? t = __instance.GetType();
+                while (t != null && s_applySoundField == null)
+                {
+                    s_applySoundField = t.GetField("m_miningApplySound",
+                        System.Reflection.BindingFlags.Instance |
+                        System.Reflection.BindingFlags.NonPublic);
+                    t = t.BaseType;
+                }
+            }
+            s_applySound = s_applySoundField?.GetValue(__instance);
+            // Cache the Play() method once from the concrete AudioSource type.
+            if (s_applySound != null && s_audioPlayMethod == null)
+                s_audioPlayMethod = s_applySound.GetType().GetMethod("Play",
+                    System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public,
+                    null, System.Type.EmptyTypes, null);
+
+            // Reflect m_switchSound (TabSwitch — played on F-mode flip) once per controller type.
+            if (s_switchSoundField == null)
+            {
+                Type? t2 = __instance.GetType();
+                while (t2 != null && s_switchSoundField == null)
+                {
+                    s_switchSoundField = t2.GetField("m_switchSound",
+                        System.Reflection.BindingFlags.Instance |
+                        System.Reflection.BindingFlags.NonPublic);
+                    t2 = t2.BaseType;
+                }
+            }
+            s_switchSound = s_switchSoundField?.GetValue(__instance);
+
             LogDebug($"[ATD] Designation tool activated: {typeName}");
         }
 
@@ -214,11 +251,16 @@ namespace AutoTerrainDesignations
 
             s_designationToolActive = false;
             s_miningController = null;
-            s_activeAreaToolbox = null;
-            s_cornerModeButton  = null;
-            s_activeCornerProto = null;
+            s_applySound = null;
+            s_switchSound = null;
+            // ExitCornerMode must come BEFORE nulling the button refs, so
+            // UpdateCornerButtonSelection inside it can still clear their Selected state.
             if (s_cornerModeActive)
                 ExitCornerMode();
+            s_activeAreaToolbox       = null;
+            s_cornerModeButtonOuter   = null;
+            s_cornerModeButtonInner   = null;
+            s_activeCornerProto       = null;
             LogDebug($"[ATD] Designation tool deactivated: {typeName}");
         }
 
@@ -235,6 +277,35 @@ namespace AutoTerrainDesignations
         public static bool RemovePreviewPrefix()
         {
             return !s_cornerModeActive || s_atdPreviewActive;
+        }
+
+        // Prefix on TerrainDesignationController.previewInitialDesignationAt — suppresses the
+        // "Invalid position." tooltip while ATD's corner mode is active. The vanilla method
+        // validates heights using its own snap logic, which does not know about ATD's snapping;
+        // skipping it entirely keeps the cursor clean when our snap is valid.
+        public static bool PreviewInitialDesignationAtPrefix(ref LocStrFormatted? error)
+        {
+            if (!s_cornerModeActive) return true;
+            error = null;
+            return false;
+        }
+
+        // Prefix on TerrainDesignationController.handleInitialState — in corner mode, only
+        // suppresses the vanilla LMB-down branch (which would play m_errorSound because
+        // m_initialDesignation is always null while our preview patch is active).
+        // RMB (ClearDesignation) is allowed through so vanilla handles AOE undesignation
+        // normally, just like in M-mode.
+        public static bool HandleInitialStatePrefixForCorner(ref object? __result)
+        {
+            if (!s_cornerModeActive) return true;
+            // Only block when LMB just went down — that's the only path that plays the error sound.
+            // Let all other inputs (RMB/ClearDesignation, no input) reach vanilla normally.
+            if (Input.GetMouseButtonDown(0))
+            {
+                __result = null;
+                return false;
+            }
+            return true;
         }
         // async placement command when it would overwrite a corner ATD just placed.
         // Protection is one-shot: consumed on the first suppressed call per tile.
@@ -278,11 +349,12 @@ namespace AutoTerrainDesignations
 
         // -- Private helpers --
 
-        private static void EnterCornerMode()
+        private static void EnterCornerMode(bool preferOuter = true)
         {
             s_cornerModeActive = true;
-            s_activeCornerVariant = CornerVariant.OriginHigh;
-            s_cornerModeButton?.Selected(true);
+            s_activeCornerVariant = preferOuter ? CornerVariant.OriginHigh : ToggleCornerType(CornerVariant.OriginHigh);
+            UpdateCornerButtonSelection();
+            PlaySwitchSound();
             // Deselect game mode buttons so K and F don't appear simultaneously active.
             if (s_activeAreaToolbox != null &&
                 s_areaToolboxButtonsField?.GetValue(s_activeAreaToolbox) is ToolboxItem[] modeButtons)
@@ -295,14 +367,32 @@ namespace AutoTerrainDesignations
             // Clear ATD's preview tiles first, while s_cornerModeActive is still true
             // (so the prefix still blocks the game's own calls during cleanup).
             ClearAllPreviews();
+            s_cornerCursor?.Hide();
             s_cornerModeActive = false;
             s_dragging = false;
             s_protectedCornerTiles.Clear();
-            s_cornerModeButton?.Selected(false);
+            UpdateCornerButtonSelection();
             // Restore the previously active game mode button.
             if (s_activeAreaToolbox != null)
                 s_activeAreaToolbox.SetMode((AreaMode)s_currentAreaMode);
             LogDebug("[ATD] Corner designation mode exited.");
+        }
+
+        /// <summary>
+        /// Syncs the selected state of the two corner mode buttons to the current active variant.
+        /// </summary>
+        private static void UpdateCornerButtonSelection()
+        {
+            bool isOuter = IsOuterVariant(s_activeCornerVariant);
+            s_cornerModeButtonOuter?.Selected(s_cornerModeActive && isOuter);
+            s_cornerModeButtonInner?.Selected(s_cornerModeActive && !isOuter);
+        }
+
+        /// <summary>Plays TabSwitch sound via reflection (same as F-mode flip).</summary>
+        private static void PlaySwitchSound()
+        {
+            if (s_switchSound != null)
+                s_audioPlayMethod?.Invoke(s_switchSound, null);
         }
 
         private static void TryBeginDrag()
@@ -310,10 +400,19 @@ namespace AutoTerrainDesignations
             if (s_terrainCursor == null) return;
             if (!s_terrainCursor.TryComputeTerrainPosition(Input.mousePosition, out Tile3f pos3f)) return;
 
-            TerrainManager terrMgr = s_desigManager!.TerrainManager;
-            s_dragOrigin     = SnapToDesignationGrid(pos3f.Xy.Tile2i);
-            s_dragBaseHeight = GetSurfaceHeight(terrMgr, s_dragOrigin) + GetHeightBias();
-            s_dragging       = true;
+            s_dragOrigin = SnapToDesignationGrid(pos3f.Xy.Tile2i);
+            var snap = TrySnapToNeighbors(s_dragOrigin);
+            if (snap.HasValue)
+            {
+                s_dragBaseHeight = snap.Value.baseHeight;
+                s_dragEffectiveVariant = snap.Value.variant;
+            }
+            else
+            {
+                s_dragBaseHeight = GetSurfaceHeight(s_desigManager!.TerrainManager, s_dragOrigin) + GetHeightBias();
+                s_dragEffectiveVariant = s_activeCornerVariant;
+            }
+            s_dragging = true;
         }
 
         private static void TryCommitDrag()
@@ -324,8 +423,14 @@ namespace AutoTerrainDesignations
 
             Tile2i end = SnapToDesignationGrid(pos3f.Xy.Tile2i);
             ClearAllPreviews();
-            foreach (var (tile, v, absHeight) in ComputeCornerFill(s_dragOrigin, end, s_dragBaseHeight))
+            int placed = 0;
+            foreach (var (tile, v, absHeight) in ComputeCornerFill(s_dragOrigin, end, s_dragBaseHeight, s_dragEffectiveVariant))
+            {
                 PlaceCornerAt(tile, absHeight, v);
+                placed++;
+            }
+            if (placed > 0 && s_applySound != null)
+                s_audioPlayMethod?.Invoke(s_applySound, null);
         }
 
         private static void PlaceCornerAt(Tile2i origin, int baseHeight, CornerVariant variant)
@@ -372,6 +477,15 @@ namespace AutoTerrainDesignations
                 return;
             }
 
+            // RMB is held — vanilla is handling AOE delete; hide our preview mesh.
+            if (Input.GetMouseButton(1))
+            {
+                if (s_previewedTiles.Count > 0)
+                    ClearAllPreviews();
+                s_cornerCursor?.Hide();
+                return;
+            }
+
             if (s_terrainCursor == null) return;
             if (!s_terrainCursor.TryComputeTerrainPosition(Input.mousePosition, out Tile3f pos3f)) return;
 
@@ -380,12 +494,24 @@ namespace AutoTerrainDesignations
 
             if (s_dragging)
             {
-                fill = ComputeCornerFill(s_dragOrigin, cursorTile, s_dragBaseHeight);
+                fill = ComputeCornerFill(s_dragOrigin, cursorTile, s_dragBaseHeight, s_dragEffectiveVariant);
             }
             else
             {
-                int hoverHeight = GetSurfaceHeight(s_desigManager.TerrainManager, cursorTile) + GetHeightBias();
-                fill = ComputeCornerFill(cursorTile, cursorTile, hoverHeight);
+                var snap = TrySnapToNeighbors(cursorTile);
+                CornerVariant hoverVariant;
+                int hoverHeight;
+                if (snap.HasValue)
+                {
+                    hoverVariant = snap.Value.variant;
+                    hoverHeight = snap.Value.baseHeight;
+                }
+                else
+                {
+                    hoverVariant = s_activeCornerVariant;
+                    hoverHeight = GetSurfaceHeight(s_desigManager.TerrainManager, cursorTile) + GetHeightBias();
+                }
+                fill = ComputeCornerFill(cursorTile, cursorTile, hoverHeight, hoverVariant);
             }
 
             // Build new tile set.
@@ -415,11 +541,17 @@ namespace AutoTerrainDesignations
             s_previewedTiles.Clear();
             foreach (Tile2i t in newTiles)
                 s_previewedTiles.Add(t);
+
+            // Show the Add cursor whenever a valid preview is visible.
+            if (newTiles.Count > 0)
+                s_cornerCursor?.Show();
+            else
+                s_cornerCursor?.Hide();
         }
 
         // Shared fill computation used by both UpdateCornerPreview and TryCommitDrag.
         private static List<(Tile2i tile, CornerVariant v, int absHeight)> ComputeCornerFill(
-            Tile2i start, Tile2i end, int baseHeight)
+            Tile2i start, Tile2i end, int baseHeight, CornerVariant effectiveVariant)
         {
             int minX = Math.Min(start.X, end.X);
             int maxX = Math.Max(start.X, end.X);
@@ -430,9 +562,9 @@ namespace AutoTerrainDesignations
             int originGridY = start.Y / 4;
             int originParity = ((originGridX + originGridY) % 2 + 2) % 2;
 
-            CornerVariant complement = CheckerboardComplement(s_activeCornerVariant);
-            int rot = (int)s_activeCornerVariant % 4;
-            int outerRot = IsOuterVariant(s_activeCornerVariant) ? rot : (rot + 2) % 4;
+            CornerVariant complement = CheckerboardComplement(effectiveVariant);
+            int rot = (int)effectiveVariant % 4;
+            int outerRot = IsOuterVariant(effectiveVariant) ? rot : (rot + 2) % 4;
 
             var result = new List<(Tile2i, CornerVariant, int)>();
 
@@ -445,7 +577,7 @@ namespace AutoTerrainDesignations
                     int parity = ((gridX + gridY) % 2 + 2) % 2;
                     bool isSameParity = (parity == originParity);
 
-                    CornerVariant v = isSameParity ? s_activeCornerVariant : complement;
+                    CornerVariant v = isSameParity ? effectiveVariant : complement;
 
                     int deltaGridX = gridX - originGridX;
                     int deltaGridY = gridY - originGridY;
@@ -462,7 +594,7 @@ namespace AutoTerrainDesignations
                     int zOffset;
                     if (isSameParity)
                         zOffset = -(slopeSum / 2);
-                    else if (IsOuterVariant(s_activeCornerVariant))
+                    else if (IsOuterVariant(effectiveVariant))
                         zOffset = -(slopeSum - 1) / 2;
                     else
                         zOffset = -(slopeSum + 1) / 2;
@@ -472,6 +604,189 @@ namespace AutoTerrainDesignations
             }
 
             return result;
+        }
+
+        /// <summary>
+        /// Reads the height constraints imposed by existing neighbor designations at all 4 corner
+        /// points of <paramref name="origin"/> and finds the (variant, baseHeight) pair that satisfies
+        /// the greatest number of them. Ties are broken by variant index order (arbitrary but stable).
+        /// Returns null when no neighbors are present at any corner (no snap needed).
+        /// </summary>
+        /// <summary>
+        /// Reads the heights that the 4 direct neighbor designations impose on the new tile's corners,
+        /// then picks the (variant, baseHeight) that best satisfies those constraints.
+        ///
+        /// Corner layout (indices used below):
+        ///   0 = NW = OriginTargetHeight
+        ///   1 = NE = PlusXTargetHeight
+        ///   2 = SE = PlusXyTargetHeight
+        ///   3 = SW = PlusYTargetHeight
+        ///
+        /// Each neighbor contributes at most two adjacent corner constraints:
+        ///   West  tile (origin-4X): its NE(1) → our NW(0);  its SE(2) → our SW(3)
+        ///   East  tile (origin+4X): its NW(0) → our NE(1);  its SW(3) → our SE(2)
+        ///   North tile (origin-4Y): its SW(3) → our NW(0);  its SE(2) → our NE(1)
+        ///   South tile (origin+4Y): its NW(0) → our SW(3);  its NE(1) → our SE(2)
+        ///
+        /// Tie-breaking priority: most edges matched → most corners at terrain height → user-selected variant.
+        /// Returns null when no neighbors are present (no snap needed).
+        /// </summary>
+        private static (CornerVariant variant, int baseHeight)? TrySnapToNeighbors(Tile2i origin)
+        {
+            // c[i] = cardinal (edge-sharing) height constraint on corner i, null if unconstrained.
+            int?[] c = new int?[4];
+            // d[i] = diagonal (corner-only) height constraint on corner i, null if unconstrained.
+            int?[] d = new int?[4];
+
+            void constrain(int?[] arr, int cornerIdx, int height)
+            {
+                // If already constrained to a different value, keep first (first neighbor wins).
+                if (!arr[cornerIdx].HasValue)
+                    arr[cornerIdx] = height;
+            }
+
+            // Corner index layout (origin = NW):
+            //   0=NW (origin), 1=NE (PlusX), 2=SE (PlusXy), 3=SW (PlusY)
+
+            // West neighbor: its NE → our NW(0), its SE → our SW(3)
+            var west = s_desigManager!.GetDesignationAt(origin.AddX(-4));
+            if (west.HasValue)
+            {
+                constrain(c, 0, west.Value.Data.PlusXTargetHeight.Value);
+                constrain(c, 3, west.Value.Data.PlusXyTargetHeight.Value);
+            }
+
+            // East neighbor: its NW → our NE(1), its SW → our SE(2)
+            var east = s_desigManager.GetDesignationAt(origin.AddX(4));
+            if (east.HasValue)
+            {
+                constrain(c, 1, east.Value.Data.OriginTargetHeight.Value);
+                constrain(c, 2, east.Value.Data.PlusYTargetHeight.Value);
+            }
+
+            // North neighbor: its SW → our NW(0), its SE → our NE(1)
+            var north = s_desigManager.GetDesignationAt(origin.AddY(-4));
+            if (north.HasValue)
+            {
+                constrain(c, 0, north.Value.Data.PlusYTargetHeight.Value);
+                constrain(c, 1, north.Value.Data.PlusXyTargetHeight.Value);
+            }
+
+            // South neighbor: its NW → our SW(3), its NE → our SE(2)
+            var south = s_desigManager.GetDesignationAt(origin.AddY(4));
+            if (south.HasValue)
+            {
+                constrain(c, 3, south.Value.Data.OriginTargetHeight.Value);
+                constrain(c, 2, south.Value.Data.PlusXTargetHeight.Value);
+            }
+
+            // Diagonal neighbors — each shares exactly one corner with our tile.
+            // NW diagonal: its SE (PlusXy) → our NW(0)
+            var nwDiag = s_desigManager.GetDesignationAt(origin.AddX(-4).AddY(-4));
+            if (nwDiag.HasValue)
+                constrain(d, 0, nwDiag.Value.Data.PlusXyTargetHeight.Value);
+
+            // NE diagonal: its SW (PlusY) → our NE(1)
+            var neDiag = s_desigManager.GetDesignationAt(origin.AddX(4).AddY(-4));
+            if (neDiag.HasValue)
+                constrain(d, 1, neDiag.Value.Data.PlusYTargetHeight.Value);
+
+            // SE diagonal: its NW (origin) → our SE(2)
+            var seDiag = s_desigManager.GetDesignationAt(origin.AddX(4).AddY(4));
+            if (seDiag.HasValue)
+                constrain(d, 2, seDiag.Value.Data.OriginTargetHeight.Value);
+
+            // SW diagonal: its NE (PlusX) → our SW(3)
+            var swDiag = s_desigManager.GetDesignationAt(origin.AddX(-4).AddY(4));
+            if (swDiag.HasValue)
+                constrain(d, 3, swDiag.Value.Data.PlusXTargetHeight.Value);
+
+            bool anyEdge = c[0].HasValue || c[1].HasValue || c[2].HasValue || c[3].HasValue;
+            bool anyDiag = d[0].HasValue || d[1].HasValue || d[2].HasValue || d[3].HasValue;
+            if (!anyEdge && !anyDiag)
+                return null;
+
+            TerrainManager terrMgr = s_desigManager.TerrainManager;
+            int[] terrain =
+            {
+                GetSurfaceHeight(terrMgr, origin),
+                GetSurfaceHeight(terrMgr, origin.AddX(4)),
+                GetSurfaceHeight(terrMgr, origin.AddXy(4)),
+                GetSurfaceHeight(terrMgr, origin.AddY(4)),
+            };
+
+            CornerVariant bestVariant = s_activeCornerVariant;
+            int bestBase = 0;
+            int bestEdgeScore = -1;
+            int bestDiagScore = -1;
+            int bestGroundScore = -1;
+            bool bestIsUserVariant = false;
+
+            // Enumerate all 8 variants × all base heights implied by each constrained corner.
+            // Both cardinal (c) and diagonal (d) constraints are used as candidate sources.
+            for (int vi = 0; vi < 8; vi++)
+            {
+                int specialCorner = vi % 4;    // corner index that carries the ±1 offset
+                int delta = vi < 4 ? +1 : -1; // outer=+1, inner=-1
+
+                for (int pass = 0; pass < 2; pass++) // pass 0 = cardinal, pass 1 = diagonal
+                {
+                    int?[] src = pass == 0 ? c : d;
+                    for (int ci = 0; ci < 4; ci++)
+                    {
+                        if (!src[ci].HasValue) continue;
+
+                        // Derive baseHeight from this corner's constraint.
+                        int b = (ci == specialCorner) ? src[ci]!.Value - delta : src[ci]!.Value;
+
+                        // Score against cardinal constraints (highest priority).
+                        int edgeScore = 0;
+                        for (int cj = 0; cj < 4; cj++)
+                        {
+                            if (!c[cj].HasValue) continue;
+                            int expected = (cj == specialCorner) ? b + delta : b;
+                            if (c[cj]!.Value == expected) edgeScore++;
+                        }
+
+                        // Score against diagonal constraints (mid priority).
+                        int diagScore = 0;
+                        for (int cj = 0; cj < 4; cj++)
+                        {
+                            if (!d[cj].HasValue) continue;
+                            int expected = (cj == specialCorner) ? b + delta : b;
+                            if (d[cj]!.Value == expected) diagScore++;
+                        }
+
+                        // Count how many corners of the new tile sit at terrain level (low priority).
+                        int groundScore = 0;
+                        for (int cj = 0; cj < 4; cj++)
+                        {
+                            int h = (cj == specialCorner) ? b + delta : b;
+                            if (h == terrain[cj]) groundScore++;
+                        }
+
+                        bool isUserVariant = ((CornerVariant)vi == s_activeCornerVariant);
+
+                        // Prefer by: (1) edge matches, (2) diagonal matches, (3) ground contact, (4) user variant.
+                        bool better = edgeScore > bestEdgeScore
+                            || (edgeScore == bestEdgeScore && diagScore > bestDiagScore)
+                            || (edgeScore == bestEdgeScore && diagScore == bestDiagScore && groundScore > bestGroundScore)
+                            || (edgeScore == bestEdgeScore && diagScore == bestDiagScore && groundScore == bestGroundScore && isUserVariant && !bestIsUserVariant);
+
+                        if (better)
+                        {
+                            bestEdgeScore = edgeScore;
+                            bestDiagScore = diagScore;
+                            bestGroundScore = groundScore;
+                            bestIsUserVariant = isUserVariant;
+                            bestVariant = (CornerVariant)vi;
+                            bestBase = b;
+                        }
+                    }
+                }
+            }
+
+            return (bestEdgeScore > 0 || bestDiagScore > 0) ? ((CornerVariant variant, int baseHeight)?)(bestVariant, bestBase) : null;
         }
 
         /// <summary>
@@ -564,21 +879,61 @@ namespace AutoTerrainDesignations
                 if (body != null)
                 {
                     var capturedToolType = toolType;
-                    var item = new ToolboxItem(
+                    const string iconPath = "Assets/Unity/UserInterface/General/ExpandScreen.svg";
+
+                    // Outer corner button — ExpandScreen as-is, keybind K.
+                    var outerItem = new ToolboxItem(
                         _ => KeyBindings.FromKey(KbCategory.Designation, ShortcutMode.Game, KeyCode.K),
-                        "Assets/Unity/UserInterface/General/Connect128.png",
+                        iconPath,
                         () =>
                         {
-                            if (s_cornerModeActive) ExitCornerMode();
-                            else if (s_designationToolActive) EnterCornerMode();
+                            if (!s_designationToolActive) return;
+                            if (!s_cornerModeActive)
+                                EnterCornerMode(preferOuter: true);
+                            else if (IsOuterVariant(s_activeCornerVariant))
+                                ExitCornerMode();
+                            else
+                            {
+                                s_activeCornerVariant = ToggleCornerType(s_activeCornerVariant);
+                                UpdateCornerButtonSelection();
+                                PlaySwitchSound();
+                            }
                         });
-                    var divider = new VerticalDivider().AlignSelfStretch().MarginTopBottom(2.pt());
-                    body.InsertAt(0, item);
-                    body.InsertAt(1, divider);
-                    if (sm != null) item.Update(sm);
 
-                    s_toolboxes[(int)capturedToolType] = (toolbox, item, buttonsField);
-                    LogDebug($"[ATD] K-mode button injected into {capturedToolType} toolbox.");
+                    // Inner corner button — ExpandScreen rotated 180°, keybind K (label only).
+                    var innerItem = new ToolboxItem(
+                        _ => KeyBindings.FromKey(KbCategory.Designation, ShortcutMode.Game, KeyCode.K),
+                        iconPath,
+                        () =>
+                        {
+                            if (!s_designationToolActive) return;
+                            if (!s_cornerModeActive)
+                                EnterCornerMode(preferOuter: false);
+                            else if (!IsOuterVariant(s_activeCornerVariant))
+                                ExitCornerMode();
+                            else
+                            {
+                                s_activeCornerVariant = ToggleCornerType(s_activeCornerVariant);
+                                UpdateCornerButtonSelection();
+                                PlaySwitchSound();
+                            }
+                        });
+
+                    // Rotate the inner icon 180° so the arrow points inward.
+                    if (innerItem.m_btn is ButtonIcon innerBtnIcon)
+                        innerBtnIcon.Icon.Element.transform.rotation = Quaternion.Euler(0f, 0f, 180f);
+
+                    outerItem.Tooltip(new LocStrFormatted(AutoTerrainDesignationsMod.Tt("Corner (outer): place convex corner ramps.")));
+                    innerItem.Tooltip(new LocStrFormatted(AutoTerrainDesignationsMod.Tt("Corner (inner): place concave corner ramps.")));
+
+                    var divider = new VerticalDivider().AlignSelfStretch().MarginTopBottom(2.pt());
+                    body.InsertAt(0, outerItem);
+                    body.InsertAt(1, innerItem);
+                    body.InsertAt(2, divider);
+                    if (sm != null) { outerItem.Update(sm); innerItem.Update(sm); }
+
+                    s_toolboxes[(int)capturedToolType] = (toolbox, outerItem, innerItem, buttonsField);
+                    LogDebug($"[ATD] K-mode buttons (outer+inner) injected into {capturedToolType} toolbox.");
                 }
                 else
                 {
@@ -647,6 +1002,24 @@ namespace AutoTerrainDesignations
                     if (deactivateMethod != null)
                         harmony.Patch(deactivateMethod,
                             postfix: new HarmonyMethod(typeof(AutoDepthDesignation), nameof(DesignationToolDeactivatePostfix)));
+
+                    var previewInitMethod = controllerType.GetMethod(
+                        "previewInitialDesignationAt",
+                        BindingFlags.Instance | BindingFlags.NonPublic);
+                    if (previewInitMethod != null)
+                        harmony.Patch(previewInitMethod,
+                            prefix: new HarmonyMethod(typeof(AutoDepthDesignation), nameof(PreviewInitialDesignationAtPrefix)));
+                    else
+                        Log.Warning("[AutoDepth] previewInitialDesignationAt method not found");
+
+                    var handleInitialMethod = controllerType.GetMethod(
+                        "handleInitialState",
+                        BindingFlags.Instance | BindingFlags.NonPublic);
+                    if (handleInitialMethod != null)
+                        harmony.Patch(handleInitialMethod,
+                            prefix: new HarmonyMethod(typeof(AutoDepthDesignation), nameof(HandleInitialStatePrefixForCorner)));
+                    else
+                        Log.Warning("[AutoDepth] handleInitialState method not found");
                 }
                 else
                 {

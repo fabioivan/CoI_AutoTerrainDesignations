@@ -5,8 +5,11 @@ description: Describe when these instructions should be loaded by the agent base
 
 <!-- Tip: Use /create-instructions in chat to generate content with agent assistance -->
 
-# Check if version has been released and increment if needed
-If the current version seems to have been released (i.e the zip file in the workspace matches the manifest's version), suggest incrementing the manifests version number for the next release, so that users can easily track updates and mod managers can detect new versions.
+# Versioning and release model
+- **Local/alpha packages** (built via `build.ps1 -Package`): increment the letter suffix on each package — `0.2.5a`, `0.2.5b`, etc. Update both `manifest.json` and `changelog.txt` to the new letter version.
+- **Public releases** (GitHub + CoI Hub): collate all lettered alpha changes into a single new version (e.g. `0.2.5a + 0.2.5b + 0.2.5c → 0.2.6`). Update both `manifest.json` and `changelog.txt`.
+- `manifest.json` version and the top `changelog.txt` entry must always match.
+- Do not propose version changes unless the user explicitly asks to package or release.
 
 # Externalize constants to settings file
 If new constants or parameters are added to the mod, suggest that these be externalized into the settings file with clear descriptions, so power users can easily customize behavior without needing to modify code.

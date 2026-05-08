@@ -37,10 +37,5 @@ public sealed class AutoTerrainDesignationsTicker : MonoBehaviour
 
     private void OnGUI()
     {
-        try
-        {
-            AutoDepthDesignation.DrawCornerModeHud();
-        }
-        catch { }
     }
 }

@@ -165,7 +165,7 @@ namespace AutoTerrainDesignations
                     }
                     catch (Exception ex) { Debug.Log($"[ATD] Dig button click EXCEPTION: {ex}"); }
                 });
-            digBtn.Tooltip(new LocStrFormatted("Scan and place mining designations in this tower's area."));
+            digBtn.Tooltip(new LocStrFormatted(AutoTerrainDesignationsMod.Tt("Scan and place mining designations in this tower's area.")));
             digBtn.Icon.Size(Px.Auto, 24.px());
 
             var debrisBtn = new ButtonIcon(
@@ -181,7 +181,7 @@ namespace AutoTerrainDesignations
                     }
                     catch (Exception ex) { Debug.Log($"[ATD] Debris button click EXCEPTION: {ex}"); }
                 })
-                .Tooltip(new LocStrFormatted("Designate all debris in the area for mining/removal. Overrides any forestry designations."));
+                .Tooltip(new LocStrFormatted(AutoTerrainDesignationsMod.Tt("Designate all debris in the area for mining/removal. Overrides any forestry designations.")));
 
             // --- Clear button ---
             var clearBtn = new ButtonIcon(
@@ -197,7 +197,7 @@ namespace AutoTerrainDesignations
                     }
                     catch (Exception ex) { Debug.Log($"[ATD] Clear button click EXCEPTION: {ex}"); }
                 })
-                .Tooltip(new LocStrFormatted("Clear all mining designations in this tower's area."));
+                .Tooltip(new LocStrFormatted(AutoTerrainDesignationsMod.Tt("Clear all mining designations in this tower's area.")));
 
             digBtn.MarginTopBottom(1.pt());
             debrisBtn.MarginTopBottom(1.pt()).AlignSelfEnd();

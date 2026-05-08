@@ -21,6 +21,8 @@ using Mafi.Core.Terrain.Props;
 using Mafi.Core.World;
 using Mafi.Unity.InputControl;
 using Mafi.Unity.Terrain.Designation;
+using Mafi.Unity.UiStatic;
+using Mafi.Unity.UiStatic.Cursors;
 using UnityEngine;
 
 namespace AutoTerrainDesignations;
@@ -42,6 +44,9 @@ public sealed class AutoTerrainDesignationsMod : IMod, IDisposable
     public static string ModVersion { get; private set; } = "?";
 
     public static string ModMarker => $"Kayser's AutoTerrainDesignations v{ModVersion}";
+
+    /// <summary>Returns <paramref name="text"/> with the mod sign-off appended, for use in tooltips.</summary>
+    public static string Tt(string text) => $"{text}\n[{ModMarker}]";
 
     public ModJsonConfig JsonConfig { get; }
 
@@ -170,15 +175,18 @@ public sealed class AutoTerrainDesignationsMod : IMod, IDisposable
             AutoDepthDesignation.SetModRootDirectoryPath(Manifest.RootDirectoryPath);
             AutoDepthDesignation.Initialize(desigManager, protosDb, worldMapManager, ticker, entitiesManager, terrainPropsManager);
 
-            // Corner designation mode — TerrainCursor and TerrainDesignationsRenderer may only
-            // be available on the Unity side; fail gracefully if not resolvable.
+            // Corner designation mode — TerrainCursor, TerrainDesignationsRenderer and
+            // CursorManager may only be available on the Unity side; fail gracefully if not resolvable.
             TerrainCursor? terrainCursor = null;
             TerrainDesignationsRenderer? desigRenderer = null;
+            CursorManager? cursorManager = null;
             try { terrainCursor = resolver.Resolve<TerrainCursor>(); }
             catch (Exception ex2) { Debug.LogWarning("[ATD] TerrainCursor not available: " + ex2.Message); }
             try { desigRenderer = resolver.Resolve<TerrainDesignationsRenderer>(); }
             catch (Exception ex3) { Debug.LogWarning("[ATD] TerrainDesignationsRenderer not available: " + ex3.Message); }
-            AutoDepthDesignation.InitializeCornerMode(terrainCursor, desigRenderer);
+            try { cursorManager = resolver.Resolve<CursorManager>(); }
+            catch (Exception ex4) { Debug.LogWarning("[ATD] CursorManager not available: " + ex4.Message); }
+            AutoDepthDesignation.InitializeCornerMode(terrainCursor, desigRenderer, cursorManager);
         }
         catch (Exception ex)
         {
