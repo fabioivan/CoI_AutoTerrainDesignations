@@ -33,6 +33,12 @@ public sealed class AutoTerrainDesignationsTicker : MonoBehaviour
             AutoDepthDesignation.ApplyPriorityToNewExcavators();
         }
         catch { }
+
+        try
+        {
+            AutoDepthDesignation.TickFarmingPreparationSessions();
+        }
+        catch { }
     }
 
     private void OnGUI()

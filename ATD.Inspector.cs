@@ -74,6 +74,7 @@ namespace AutoTerrainDesignations
             DesignationPanel.ClearRampWarning(__instance);
             DesignationPanel.RefreshDisplays(__instance);
             OreCompositionPanel.ResetContent(__instance);
+            FarmingAnalysisPanel.ResetContent(__instance);
         }
 
         public static void InspectorCtorPostfix(object __instance)
@@ -125,8 +126,9 @@ namespace AutoTerrainDesignations
                     {
                         mainBody.InsertAt(0, atdPanel);
                         OreCompositionPanel.Inject(mainBody, entityProp, inspector);
+                        FarmingAnalysisPanel.Inject(mainBody, entityProp, inspector);
                         mainBody.Show();
-                        LogDebug("[AutoDepth] ATD panel and Ore Composition panel inserted");
+                        LogDebug("[AutoDepth] ATD, Ore Composition, and Farming Analysis panels inserted");
                     }
                     else
                     {

@@ -13,18 +13,28 @@ From tower, a button to flip between normal mode and farming mode. When the towe
 
 When entering farming mode or user places a leveling designation: Store the leveling designation(s) internally (will be referenced and restored later), analyze the land where the designation is placed and prepare it for farming. Preparation for farming will need to happen in several steps, du to how dumping rules on the tower works:
 * Define the target height as the level of the original leveling designation. Store the leveling designation internally as the original farming designation (to be restored later).
-Analysis:
-* If the tile is empty or has only soil materials (=dirt or compost) in the target layer (=the entire layer directly below the target height in the farming designation), delete the farming designation temporarily (will be restored in a later phase)
-Assert: the target layer has at least some material in it that is not soil.
-Preparation:
-* Place a leveling designation one level below the target level. This will prepare the land for the topsoil, by excavating any non-fertile materials and filling the tile to z-1 with any materials set by the tower rules.
-* Keep Preparation until all tiles are prepared.
-Filling:
-* Restrict dumping in the tower to just dirt. (Store original dumping restrictions; will be restored later)
-* Restore the farming designations.
-Keep Filling until all tiles are filled.
-* When done, restore original dumping restricitons.
+Analysis/Leveling:
+* If the designation is already fully farmable and fully at target level: store to be restored at Hold or Done.
+* Else If the designation is fully farmable and everywhere at or above target level, leave the designation in place for it to be leveled (will be analyzed again for farmability again when leveled).
+* Else If the tile is fully farmable: store designation to be restored at Hold or Filling.
+* Assert: Tile is somewhere not farmable => proceed to Preparation.
+* When all designations are done/leveled, proceed to Preparation. Else stay in Analysis/Leveling.
+Preparation [assert: all remaining designations are not fully fertile]:
+* Store remaining active designations internally (to be restored at Hold or Filling). Place leveling designations one level below the designations just stored. This will excavate the infertile designations to make room for the topsoil.
+* Keep Preparation until all designations are completely excavated.
+Filling [assert: all designations are farmable or at least 1 z below target level]:
+* Restrict dumping in the tower to just dirt/compost. (Store original tower dumping restrictions; will be restored later)
+* Restore all designations previously stored.
+* Keep Filling until all tiles are completely filled.
+* Restore original dumping restrictions on tower.
+
 
 Important events:
-* Save game must be patched to remove all temporary designations and restore the original leveling designations before the game is saved.
-* Initialization/Game load: resume farming mode on all towers with at least one leveling designation.
+* Save game (or pause) must be patched to remove all temporary designations and restore the original leveling designations before the game is saved. Also, restore original dumping restrictions.
+* Initialization/Game load (unpause): resume farming mode on all towers with at least one leveling designation.
+
+During implementation: use a debug/status bar.
+
+## todo:
+- tower avoidance
+- laggy on big designations, even on 2x speed

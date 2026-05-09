@@ -159,6 +159,24 @@ public sealed class AtdConsoleCommands
         return "[ATD] Failed to save settings. Check the log for details.";
     }
 
+    [ConsoleCommand(false, false, "Analyzes one flat farming level-designation origin. Coordinates snap to the 4x4 designation origin.", null)]
+    private string atdFarmingAnalyzeOrigin(int x, int y)
+    {
+        return AutoDepthDesignation.AnalyzeFarmingOriginForDebug(x, y);
+    }
+
+    [ConsoleCommand(false, false, "Stage 2 debug: prepares one NeedsPreparation farming origin by replacing it with target-1 leveling.", null)]
+    private string atdFarmingPrepareOrigin(int x, int y)
+    {
+        return AutoDepthDesignation.PrepareFarmingOriginForDebug(x, y);
+    }
+
+    [ConsoleCommand(false, false, "Stage 2 debug: restores the original level designation stored by atd_farming_prepare_origin.", null)]
+    private string atdFarmingRestoreOrigin(int x, int y)
+    {
+        return AutoDepthDesignation.RestoreFarmingOriginForDebug(x, y);
+    }
+
     [ConsoleCommand(false, false, "Resets ATD global settings to built-in defaults in memory only. Use atd_save_settings to write them to ATDsettings.json.", null)]
     private string atdResetToDefaults()
     {

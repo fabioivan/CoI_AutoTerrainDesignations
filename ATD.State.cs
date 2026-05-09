@@ -206,6 +206,9 @@ namespace AutoTerrainDesignations
             s_excavatorPathFindingParams = FindExcavatorPathFindingParams(protosDb);
             s_startupTowerPrioritySyncCompleted = false;
             s_startupTowerPrioritySyncAttempts = 0;
+            s_farmingDebugStoredDesignations.Clear();
+            s_farmingPreparationSessions.Clear();
+            s_farmingAutomationDisabledTowerIds.Clear();
 
             if (protosDb.TryGetProto(new Proto.ID("MiningDesignator"), out TerrainDesignationProto proto))
                 s_miningProto = proto;

@@ -172,10 +172,23 @@ namespace AutoTerrainDesignations
             int configuredRampWidth,
             out Tile2i topRowTile)
         {
+            return CreateAccessRamp(tower, tileDepths, cornerHeights, terrMgr, configuredRampWidth, s_miningProto, null, out topRowTile);
+        }
+
+        private static RampPlacementOutcome CreateAccessRamp(
+            IAreaManagingTower tower,
+            Dict<Tile2i, int> tileDepths,
+            Dict<Tile2i, int> cornerHeights,
+            TerrainManager terrMgr,
+            int configuredRampWidth,
+            TerrainDesignationProto? rampProto,
+            List<Tile2i>? placedRampOrigins,
+            out Tile2i topRowTile)
+        {
             topRowTile = default;
             s_lastRampFailureReason = null;
 
-            if (tileDepths.Count == 0 || s_desigManager == null || s_miningProto == null)
+            if (tileDepths.Count == 0 || s_desigManager == null || rampProto == null)
             {
                 s_lastRampFailureReason = "No excavation tiles were available for ramp planning.";
                 return RampPlacementOutcome.Failed;
@@ -190,7 +203,7 @@ namespace AutoTerrainDesignations
                 LogDebug(string.Format("No usable {0}-wide ramp space found inside the tower area.", rampWidth));
             }
 
-            RampPlacementOutcome outcome = TryPlaceRampCandidates(tower, tileDepths, cornerHeights, terrMgr, candidates, out topRowTile);
+            RampPlacementOutcome outcome = TryPlaceRampCandidates(tower, tileDepths, cornerHeights, terrMgr, candidates, rampProto, placedRampOrigins, out topRowTile);
             if (outcome != RampPlacementOutcome.Failed)
             {
                 return outcome;
@@ -201,7 +214,7 @@ namespace AutoTerrainDesignations
             {
                 LogDebug(string.Format("Retrying ramp search with a sideways offset of {0} lane(s).", lateralRetryOffset));
                 List<RampCandidate> shiftedCandidates = CollectRampCandidates(tower, tileDepths, rampWidth, lateralRetryOffset);
-                outcome = TryPlaceRampCandidates(tower, tileDepths, cornerHeights, terrMgr, shiftedCandidates, out topRowTile);
+                outcome = TryPlaceRampCandidates(tower, tileDepths, cornerHeights, terrMgr, shiftedCandidates, rampProto, placedRampOrigins, out topRowTile);
                 if (outcome != RampPlacementOutcome.Failed)
                 {
                     return outcome;
@@ -216,7 +229,7 @@ namespace AutoTerrainDesignations
             return RampPlacementOutcome.Failed;
         }
 
-        private static RampPlacementOutcome TryPlaceRampCandidates(IAreaManagingTower tower, Dict<Tile2i, int> tileDepths, Dict<Tile2i, int> cornerHeights, TerrainManager terrMgr, List<RampCandidate> candidates, out Tile2i topRowTile)
+        private static RampPlacementOutcome TryPlaceRampCandidates(IAreaManagingTower tower, Dict<Tile2i, int> tileDepths, Dict<Tile2i, int> cornerHeights, TerrainManager terrMgr, List<RampCandidate> candidates, TerrainDesignationProto rampProto, List<Tile2i>? placedRampOrigins, out Tile2i topRowTile)
         {
             topRowTile = default;
             if (candidates.Count == 0)
@@ -228,7 +241,7 @@ namespace AutoTerrainDesignations
 
             foreach (RampCandidate candidate in candidates)
             {
-                RampPlacementOutcome outcome = TryPlaceRamp(tower, candidate, tileDepths, cornerHeights, terrMgr, out topRowTile);
+                RampPlacementOutcome outcome = TryPlaceRamp(tower, candidate, tileDepths, cornerHeights, terrMgr, rampProto, placedRampOrigins, out topRowTile);
                 if (outcome != RampPlacementOutcome.Failed)
                 {
                     return outcome;
@@ -464,7 +477,7 @@ namespace AutoTerrainDesignations
             return bestDepthSpread <= maxAllowedDepthSpread;
         }
 
-        private static RampPlacementOutcome TryPlaceRamp(IAreaManagingTower tower, RampCandidate candidate, Dict<Tile2i, int> tileDepths, Dict<Tile2i, int> cornerHeights, TerrainManager terrMgr, out Tile2i topRowTile)
+        private static RampPlacementOutcome TryPlaceRamp(IAreaManagingTower tower, RampCandidate candidate, Dict<Tile2i, int> tileDepths, Dict<Tile2i, int> cornerHeights, TerrainManager terrMgr, TerrainDesignationProto rampProto, List<Tile2i>? placedRampOrigins, out Tile2i topRowTile)
         {
             topRowTile = default;
             int laneCount = candidate.OreTiles.Length;
@@ -598,7 +611,7 @@ namespace AutoTerrainDesignations
                 if (isAboveSurfaceEverywhere)
                 {
                     AddGapConnectorPlans(plannedTiles, candidate, laneFirstEdgeHeights, laneSecondEdgeHeights);
-                    ApplyRampPlan(plannedTiles, tileDepths, cornerHeights);
+                    ApplyRampPlan(plannedTiles, tileDepths, cornerHeights, rampProto, placedRampOrigins);
                     topRowTile = currentTiles[0];
                     return RampPlacementOutcome.Crested;
                 }
@@ -618,7 +631,7 @@ namespace AutoTerrainDesignations
                 if (!allInsideTower)
                 {
                     AddGapConnectorPlans(plannedTiles, candidate, laneFirstEdgeHeights, laneSecondEdgeHeights);
-                    ApplyRampPlan(plannedTiles, tileDepths, cornerHeights);
+                    ApplyRampPlan(plannedTiles, tileDepths, cornerHeights, rampProto, placedRampOrigins);
                     topRowTile = currentTiles[0];
                     return RampPlacementOutcome.Truncated;
                 }
@@ -718,13 +731,13 @@ namespace AutoTerrainDesignations
             return new RampTilePlan(tile, nwHeight, neHeight, seHeight, swHeight);
         }
 
-        private static void ApplyRampPlan(List<RampTilePlan> plannedTiles, Dict<Tile2i, int> tileDepths, Dict<Tile2i, int> cornerHeights)
+        private static void ApplyRampPlan(List<RampTilePlan> plannedTiles, Dict<Tile2i, int> tileDepths, Dict<Tile2i, int> cornerHeights, TerrainDesignationProto rampProto, List<Tile2i>? placedRampOrigins)
         {
             NormalizeRampPlan(plannedTiles, tileDepths, cornerHeights);
 
             foreach (RampTilePlan plannedTile in plannedTiles)
             {
-                PlaceDesignation(plannedTile.Tile, plannedTile.NwHeight, plannedTile.NeHeight, plannedTile.SeHeight, plannedTile.SwHeight);
+                PlaceDesignation(rampProto, plannedTile.Tile, plannedTile.NwHeight, plannedTile.NeHeight, plannedTile.SeHeight, plannedTile.SwHeight, placedRampOrigins);
             }
         }
 
@@ -888,9 +901,9 @@ namespace AutoTerrainDesignations
             swCorner = tile.AddY(4);
         }
 
-        private static void PlaceDesignation(Tile2i tile, int nwHeight, int neHeight, int seHeight, int swHeight)
+        private static void PlaceDesignation(TerrainDesignationProto proto, Tile2i tile, int nwHeight, int neHeight, int seHeight, int swHeight, List<Tile2i>? placedRampOrigins)
         {
-            if (s_desigManager == null || s_miningProto == null)
+            if (s_desigManager == null)
             {
                 return;
             }
@@ -899,10 +912,13 @@ namespace AutoTerrainDesignations
                 new HeightTilesI(nwHeight), new HeightTilesI(neHeight),
                 new HeightTilesI(seHeight), new HeightTilesI(swHeight));
 
-            if (!s_desigManager.AddOrReplaceDesignation(s_miningProto, data))
+            if (!s_desigManager.AddOrReplaceDesignation(proto, data))
             {
                 Log.Warning(string.Format("Failed to create ramp designation for tile {0}", tile));
+                return;
             }
+
+            placedRampOrigins?.Add(tile);
         }
 
         private static bool IsFreeRampTile(IAreaManagingTower tower, Tile2i tile, Dict<Tile2i, int> tileDepths, int rampDepth, Tile2i rampDirection)
