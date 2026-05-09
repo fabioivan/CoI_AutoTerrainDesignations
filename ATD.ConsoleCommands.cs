@@ -159,6 +159,13 @@ public sealed class AtdConsoleCommands
         return "[ATD] Failed to save settings. Check the log for details.";
     }
 
+    [ConsoleCommand(false, false, "Resets ATD global settings to built-in defaults in memory only. Use atd_save_settings to write them to ATDsettings.json.", null)]
+    private string atdResetToDefaults()
+    {
+        AutoDepthDesignation.ResetSettingsToDefaults();
+        return "[ATD] Settings reset to built-in defaults in memory. Use atd_save_settings to save them.";
+    }
+
     private static bool TryParseConsoleBool(string value, out bool parsed)
     {
         switch ((value ?? string.Empty).Trim().ToLowerInvariant())

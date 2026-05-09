@@ -19,10 +19,10 @@ namespace AutoTerrainDesignations
     {
         private const float MIN_ORE_HEIGHT_THRESHOLD = 1.0f;
 
-        private static float[] s_minOreHeightByLevel;
-        private static float[] s_minBottomOreDensityByLevel;
-        private static float[] s_minOrePurityByLevel;
-        private static int[] s_minComponentSizeByLevel;
+        private static float[] s_minOreHeightByLevel = Array.Empty<float>();
+        private static float[] s_minBottomOreDensityByLevel = Array.Empty<float>();
+        private static float[] s_minOrePurityByLevel = Array.Empty<float>();
+        private static int[] s_minComponentSizeByLevel = Array.Empty<int>();
         private const string SETTINGS_FILE_NAME = "ATDsettings.json";
         private const string LEGACY_SETTINGS_FILE_NAME = "settings.json";
 
@@ -31,11 +31,27 @@ namespace AutoTerrainDesignations
 
         static AutoDepthDesignation()
         {
-            // Initialize with defaults
-            s_minOreHeightByLevel         = new float[] { 0f, 0.5f, 1.0f, 2.0f, 3.0f };
-            s_minBottomOreDensityByLevel  = new float[] { 0f, 0.10f, 0.25f, 0.50f, 0.75f };
-            s_minOrePurityByLevel         = new float[] { 0f, 0.10f, 0.25f, 0.50f, 0.75f };
-            s_minComponentSizeByLevel     = new int[] { 0, 3, 8, 20, 40 };
+            ResetPurityLevelDefaults();
+        }
+
+        private static float[] DefaultMinOreHeightByLevel() => new float[] { 0f, 0.25f, 0.75f, 2.0f, 3.0f };
+        private static float[] DefaultMinBottomOreDensityByLevel() => new float[] { 0f, 0.05f, 0.20f, 0.50f, 0.75f };
+        private static float[] DefaultMinOrePurityByLevel() => new float[] { 0f, 0.05f, 0.20f, 0.50f, 0.75f };
+        private static int[] DefaultMinComponentSizeByLevel() => new int[] { 0, 2, 6, 20, 40 };
+
+        private static void ResetPurityLevelDefaults()
+        {
+            s_minOreHeightByLevel = DefaultMinOreHeightByLevel();
+            s_minBottomOreDensityByLevel = DefaultMinBottomOreDensityByLevel();
+            s_minOrePurityByLevel = DefaultMinOrePurityByLevel();
+            s_minComponentSizeByLevel = DefaultMinComponentSizeByLevel();
+        }
+
+        internal static void ResetSettingsToDefaults()
+        {
+            AutoTerrainDesignationsMod.ResetGlobalDefaults();
+            s_batchSize = BATCH_SIZE;
+            ResetPurityLevelDefaults();
         }
 
         internal static bool TrySetMinOreHeightForLevel(int level, float value)
@@ -589,16 +605,16 @@ namespace AutoTerrainDesignations
             sb.AppendLine("  \"purityLevels\": {");
             sb.AppendLine("    \"_comment\": \"Thresholds applied at each Ore Purity Level. Arrays have 5 entries: [Off, Low, Med, High, Max]. Off (index 0) should always be 0 / no filtering. These define what each level means \u2014 edit if you want to retune the purity steps.\",");
             sb.AppendLine();
-            sb.AppendLine("    \"_comment_minOreHeightByLevel\": \"Minimum ore thickness (in terrain tiles) a tile must contain to be included in the designation. Tiles below this threshold are excluded entirely. Default: [0.0, 0.5, 1.0, 2.0, 3.0].\",");
+            sb.AppendLine("    \"_comment_minOreHeightByLevel\": \"Minimum ore thickness (in terrain tiles) a tile must contain to be included in the designation. Tiles below this threshold are excluded entirely. Default: [0.0, 0.25, 0.75, 2.0, 3.0].\",");
             sb.AppendLine($"    \"minOreHeightByLevel\": {FloatArrayToJson(s_minOreHeightByLevel)},");
             sb.AppendLine();
-            sb.AppendLine("    \"_comment_minBottomOreDensityByLevel\": \"Minimum ore density (0.0-1.0) a depth zone must have to be excavated. For each ore interval below the first, the zone from the previous ore's bottom to this ore's bottom is evaluated: density = ore_thickness / zone_thickness. If density falls below this threshold, digging stops there. Default: [0.0, 0.25, 0.5, 0.75, 1.0].\",");
+            sb.AppendLine("    \"_comment_minBottomOreDensityByLevel\": \"Minimum ore density (0.0-1.0) a depth zone must have to be excavated. For each ore interval below the first, the zone from the previous ore's bottom to this ore's bottom is evaluated: density = ore_thickness / zone_thickness. If density falls below this threshold, digging stops there. Default: [0.0, 0.05, 0.20, 0.50, 0.75].\",");
             sb.AppendLine($"    \"minBottomOreDensityByLevel\": {FloatArrayToJson(s_minBottomOreDensityByLevel)},");
             sb.AppendLine();
-            sb.AppendLine("    \"_comment_minOrePurityRatioByLevel\": \"Minimum ratio of ore thickness to total column thickness (0.0-1.0). Tiles where ore makes up less than this fraction of the full terrain column (down to bedrock) are excluded as too contaminated with overburden. Default: [0.0, 0.2, 0.4, 0.6, 0.8].\",");
+            sb.AppendLine("    \"_comment_minOrePurityRatioByLevel\": \"Minimum ratio of ore thickness to total column thickness (0.0-1.0). Tiles where ore makes up less than this fraction of the full terrain column (down to bedrock) are excluded as too contaminated with overburden. Default: [0.0, 0.05, 0.20, 0.50, 0.75].\",");
             sb.AppendLine($"    \"minOrePurityRatioByLevel\": {FloatArrayToJson(s_minOrePurityByLevel)},");
             sb.AppendLine();
-            sb.AppendLine("    \"_comment_minComponentSizeByLevel\": \"Minimum number of connected designation tiles a cluster must have to survive the isolation filter. Smaller clusters are pruned as insignificant. Default: [0, 3, 5, 8, 13].\",");
+            sb.AppendLine("    \"_comment_minComponentSizeByLevel\": \"Minimum number of connected designation tiles a cluster must have to survive the isolation filter. Smaller clusters are pruned as insignificant. Default: [0, 2, 6, 20, 40].\",");
             sb.AppendLine($"    \"minComponentSizeByLevel\": {IntArrayToJson(s_minComponentSizeByLevel)}");
             sb.AppendLine("  }");
             sb.Append("}");

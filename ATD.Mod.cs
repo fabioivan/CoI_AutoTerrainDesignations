@@ -75,6 +75,19 @@ public sealed class AutoTerrainDesignationsMod : IMod, IDisposable
 
     public static int MaxHeightDiff { get; private set; } = 1;
 
+    public static void ResetGlobalDefaults()
+    {
+        SetMaxHeightDiff(1);
+        SetRampWidth(2);
+        SetMaxLayersToExcavate(30);
+        SetMaxDepthToDigTo(null);
+        SetOrePurityLevel(0);
+        SetBottomFlatteningEnabled(true);
+        SetMinCorridorClearance(2);
+        SetTerrainDesignationsPanelCollapsed(false);
+        SetOreCompositionPanelCollapsed(false);
+    }
+
     public static void SetMaxHeightDiff(int value)
     {
         MaxHeightDiff = Math.Max(1, Math.Min(3, value));

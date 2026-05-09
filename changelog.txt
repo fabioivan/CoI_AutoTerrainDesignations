@@ -1,10 +1,11 @@
-v0.3.0a | 2026-05-09
+v0.3.1 | 2026-05-09
 * Ramp generation warnings now shown as a yellow icon next to the **Create Designations** button (tooltip contains the message):
     - "Ramp generation failed — no valid path found."
     - "Ramp placed but did not reach the surface — excavators may not be able to excavate."
     - "Couldn't find a valid path from the tower to the generated ramp. Check for access problems."
-* Increased generated ramp safety margin around nearby buildings by 1 tile.
-* Added a bottom-flattening pass to reduce rough/bumpy excavation floors; designations floor should now be noticably flatter. Can be toggled on/off with **atd_set_bottom_flattening on/off**.
+* Increased generated ramp safety margin around nearby buildings by 1 tile. Landslide can still reach buildings if built on deep dirt/sand.
+* Added a bottom-flattening pass to reduce rough/bumpy excavation floors; designations floor should now be noticeably flatter. Can be toggled on/off with **atd_set_bottom_flattening on/off**.
+* Tuned default **Low** and **Med** ore purity thresholds to reduce the jump from **Off**; existing **ATDsettings.json** values are preserved. Added **atd_reset_to_defaults** to try built-in defaults in memory.
 * Renamed the **Target product** label to **Scanning filter** to avoid confusion with mining priority.
 
 
