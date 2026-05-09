@@ -39,6 +39,11 @@ namespace AutoTerrainDesignations
         private static float[] DefaultMinOrePurityByLevel() => new float[] { 0f, 0.05f, 0.20f, 0.50f, 0.75f };
         private static int[] DefaultMinComponentSizeByLevel() => new int[] { 0, 2, 6, 20, 40 };
 
+        private static float[] LegacyMinOreHeightByLevel() => new float[] { 0f, 0.5f, 1.0f, 2.0f, 3.0f };
+        private static float[] LegacyMinBottomOreDensityByLevel() => new float[] { 0f, 0.10f, 0.25f, 0.50f, 0.75f };
+        private static float[] LegacyMinOrePurityByLevel() => new float[] { 0f, 0.10f, 0.25f, 0.50f, 0.75f };
+        private static int[] LegacyMinComponentSizeByLevel() => new int[] { 0, 3, 8, 20, 40 };
+
         private static void ResetPurityLevelDefaults()
         {
             s_minOreHeightByLevel = DefaultMinOreHeightByLevel();
@@ -141,7 +146,7 @@ namespace AutoTerrainDesignations
                 }
 
                 string json = File.ReadAllText(settingsPath);
-                string? fileVersion = ParseSettingsJson(json);
+                string? fileVersion = ParseSettingsJson(json, isLegacySettingsPath);
                 s_loadedSettingsPath = isLegacySettingsPath
                     ? Path.Combine(Path.GetDirectoryName(settingsPath) ?? string.Empty, SETTINGS_FILE_NAME)
                     : settingsPath;
@@ -323,10 +328,11 @@ namespace AutoTerrainDesignations
             }
         }
 
-        private static string? ParseSettingsJson(string json)
+        private static string? ParseSettingsJson(string json, bool forceMigration)
         {
             // Simple JSON parser for our specific structure
-            string? parsedVersion = null;
+            string? parsedVersion = ParseString(json, "settingsVersion");
+            bool migrateGeneratedDefaults = forceMigration || parsedVersion != AutoTerrainDesignationsMod.ModVersion;
             try
             {
                 // Extract purityLevels object
@@ -344,58 +350,134 @@ namespace AutoTerrainDesignations
 
                     string purityObj = json.Substring(start, end - start);
 
-                    // Parse each array
-                    s_minOreHeightByLevel = ParseFloatArray(purityObj, "minOreHeightByLevel") ?? s_minOreHeightByLevel;
-                    s_minBottomOreDensityByLevel = ParseFloatArray(purityObj, "minBottomOreDensityByLevel") ?? s_minBottomOreDensityByLevel;
-                    s_minOrePurityByLevel = ParseFloatArray(purityObj, "minOrePurityRatioByLevel") ?? s_minOrePurityByLevel;
-                    s_minComponentSizeByLevel = ParseIntArray(purityObj, "minComponentSizeByLevel") ?? s_minComponentSizeByLevel;
+                    float[]? minOreHeight = ParseFloatArray(purityObj, "minOreHeightByLevel");
+                    if (minOreHeight != null && ShouldPreserveFloatArray(minOreHeight, migrateGeneratedDefaults, LegacyMinOreHeightByLevel(), DefaultMinOreHeightByLevel()))
+                        s_minOreHeightByLevel = minOreHeight;
+
+                    float[]? minBottomOreDensity = ParseFloatArray(purityObj, "minBottomOreDensityByLevel");
+                    if (minBottomOreDensity != null && ShouldPreserveFloatArray(minBottomOreDensity, migrateGeneratedDefaults, LegacyMinBottomOreDensityByLevel(), DefaultMinBottomOreDensityByLevel()))
+                        s_minBottomOreDensityByLevel = minBottomOreDensity;
+
+                    float[]? minOrePurity = ParseFloatArray(purityObj, "minOrePurityRatioByLevel");
+                    if (minOrePurity != null && ShouldPreserveFloatArray(minOrePurity, migrateGeneratedDefaults, LegacyMinOrePurityByLevel(), DefaultMinOrePurityByLevel()))
+                        s_minOrePurityByLevel = minOrePurity;
+
+                    int[]? minComponentSize = ParseIntArray(purityObj, "minComponentSizeByLevel");
+                    if (minComponentSize != null && ShouldPreserveIntArray(minComponentSize, migrateGeneratedDefaults, LegacyMinComponentSizeByLevel(), DefaultMinComponentSizeByLevel()))
+                        s_minComponentSizeByLevel = minComponentSize;
                 }
 
                 // Top-level scalar settings
-                s_batchSize = ClampBatchSize(ParseInt(json, "batchSize") ?? s_batchSize);
+                int? batchSize = ParseInt(json, "batchSize");
+                if (batchSize.HasValue && ShouldPreserveInt(batchSize.Value, migrateGeneratedDefaults, BATCH_SIZE))
+                    s_batchSize = ClampBatchSize(batchSize.Value);
+
                 int? slopeDefault = ParseInt(json, "maxSlopeHeightDiff");
-                if (slopeDefault.HasValue)
+                if (slopeDefault.HasValue && ShouldPreserveInt(slopeDefault.Value, migrateGeneratedDefaults, 1))
                     AutoTerrainDesignationsMod.SetMaxHeightDiff(slopeDefault.Value);
 
                 int? rampWidth = ParseInt(json, "rampWidth");
-                if (rampWidth.HasValue)
+                if (rampWidth.HasValue && ShouldPreserveInt(rampWidth.Value, migrateGeneratedDefaults, 2))
                     AutoTerrainDesignationsMod.SetRampWidth(rampWidth.Value);
 
                 int? maxLayers = ParseInt(json, "maxLayersToExcavate");
-                if (maxLayers.HasValue)
+                if (maxLayers.HasValue && ShouldPreserveInt(maxLayers.Value, migrateGeneratedDefaults, 30))
                     AutoTerrainDesignationsMod.SetMaxLayersToExcavate(maxLayers.Value);
 
                 var (foundDepth, depthVal) = TryParseNullableInt(json, "maxDepthToDigTo");
-                if (foundDepth)
+                if (foundDepth && ShouldPreserveNullableInt(depthVal, migrateGeneratedDefaults, (int?)null))
                     AutoTerrainDesignationsMod.SetMaxDepthToDigTo(depthVal);
 
                 int? purityLevel = ParseInt(json, "orePurityLevel");
-                if (purityLevel.HasValue)
+                if (purityLevel.HasValue && ShouldPreserveInt(purityLevel.Value, migrateGeneratedDefaults, 0))
                     AutoTerrainDesignationsMod.SetOrePurityLevel(purityLevel.Value);
 
                 bool? bottomFlatteningEnabled = ParseBool(json, "bottomFlatteningEnabled");
-                if (bottomFlatteningEnabled.HasValue)
+                if (bottomFlatteningEnabled.HasValue && ShouldPreserveBool(bottomFlatteningEnabled.Value, migrateGeneratedDefaults, true))
                     AutoTerrainDesignationsMod.SetBottomFlatteningEnabled(bottomFlatteningEnabled.Value);
 
                 int? corridorClearance = ParseInt(json, "minCorridorClearance");
-                if (corridorClearance.HasValue)
+                if (corridorClearance.HasValue && ShouldPreserveInt(corridorClearance.Value, migrateGeneratedDefaults, 2))
                     AutoTerrainDesignationsMod.SetMinCorridorClearance(corridorClearance.Value);
 
                 bool? terrainDesignationsPanelCollapsed = ParseBool(json, "terrainDesignationsPanelCollapsed");
-                if (terrainDesignationsPanelCollapsed.HasValue)
+                if (terrainDesignationsPanelCollapsed.HasValue && ShouldPreserveBool(terrainDesignationsPanelCollapsed.Value, migrateGeneratedDefaults, false))
                     AutoTerrainDesignationsMod.SetTerrainDesignationsPanelCollapsed(terrainDesignationsPanelCollapsed.Value);
 
                 bool? oreCompositionPanelCollapsed = ParseBool(json, "oreCompositionPanelCollapsed");
-                if (oreCompositionPanelCollapsed.HasValue)
+                if (oreCompositionPanelCollapsed.HasValue && ShouldPreserveBool(oreCompositionPanelCollapsed.Value, migrateGeneratedDefaults, false))
                     AutoTerrainDesignationsMod.SetOreCompositionPanelCollapsed(oreCompositionPanelCollapsed.Value);
-
-                parsedVersion = ParseString(json, "settingsVersion");
             }
             catch (Exception ex)
             {
                 Log.Warning($"[ATD] Error parsing ATDsettings.json: {ex.Message}");
             }
             return parsedVersion;
+        }
+
+        private static bool ShouldPreserveInt(int value, bool migrateGeneratedDefaults, params int[] knownDefaults)
+            => !migrateGeneratedDefaults || Array.IndexOf(knownDefaults, value) < 0;
+
+        private static bool ShouldPreserveNullableInt(int? value, bool migrateGeneratedDefaults, params int?[] knownDefaults)
+            => !migrateGeneratedDefaults || Array.IndexOf(knownDefaults, value) < 0;
+
+        private static bool ShouldPreserveBool(bool value, bool migrateGeneratedDefaults, params bool[] knownDefaults)
+            => !migrateGeneratedDefaults || Array.IndexOf(knownDefaults, value) < 0;
+
+        private static bool ShouldPreserveFloatArray(float[] value, bool migrateGeneratedDefaults, params float[][] knownDefaults)
+        {
+            if (!migrateGeneratedDefaults)
+                return true;
+
+            foreach (float[] knownDefault in knownDefaults)
+            {
+                if (FloatArraysEqual(value, knownDefault))
+                    return false;
+            }
+
+            return true;
+        }
+
+        private static bool ShouldPreserveIntArray(int[] value, bool migrateGeneratedDefaults, params int[][] knownDefaults)
+        {
+            if (!migrateGeneratedDefaults)
+                return true;
+
+            foreach (int[] knownDefault in knownDefaults)
+            {
+                if (IntArraysEqual(value, knownDefault))
+                    return false;
+            }
+
+            return true;
+        }
+
+        private static bool FloatArraysEqual(float[] a, float[] b)
+        {
+            if (a.Length != b.Length)
+                return false;
+
+            for (int i = 0; i < a.Length; i++)
+            {
+                if (Math.Abs(a[i] - b[i]) > 0.0001f)
+                    return false;
+            }
+
+            return true;
+        }
+
+        private static bool IntArraysEqual(int[] a, int[] b)
+        {
+            if (a.Length != b.Length)
+                return false;
+
+            for (int i = 0; i < a.Length; i++)
+            {
+                if (a[i] != b[i])
+                    return false;
+            }
+
+            return true;
         }
 
         private static float[]? ParseFloatArray(string json, string key)
@@ -581,7 +663,7 @@ namespace AutoTerrainDesignations
             sb.AppendLine("  \"_comment_rampWidth\": \"Default starting value for the Ramp Width setting on each mine tower. Width of access ramps generated at the edge of designations, in tiles. 0 disables ramp generation entirely. Can be adjusted per tower in-game. Allowed range: 0-5. Default: 2.\",");
             sb.AppendLine($"  \"rampWidth\": {AutoTerrainDesignationsMod.RampWidth},");
             sb.AppendLine();
-            sb.AppendLine("  \"_comment_maxLayersToExcavate\": \"Default starting value for the Max Layers setting on each mine tower. Maximum number of terrain layers to excavate from the surface downward. 0 = no limit. Can be adjusted per tower in-game. Default: 50.\",");
+            sb.AppendLine("  \"_comment_maxLayersToExcavate\": \"Default starting value for the Max Layers setting on each mine tower. Maximum number of terrain layers to excavate from the surface downward. 0 = no limit. Can be adjusted per tower in-game. Default: 30.\",");
             sb.AppendLine($"  \"maxLayersToExcavate\": {AutoTerrainDesignationsMod.MaxLayersToExcavate},");
             sb.AppendLine();
             sb.AppendLine("  \"_comment_maxDepthToDigTo\": \"Default starting value for the Max Depth setting on each mine tower. Absolute minimum terrain elevation (in tiles) the designation will dig down to. null = no lower-bound limit. Can be adjusted per tower in-game. Default: null.\",");

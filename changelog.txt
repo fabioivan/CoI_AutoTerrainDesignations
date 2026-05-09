@@ -1,3 +1,8 @@
+v0.3.1a | 2026-05-09
+* Improved **ATDsettings.json** migration so generated defaults from older releases are upgraded to the current defaults while user-changed values are preserved.
+* Recognizes both pre-0.3.1 ore purity defaults and 0.3.1-generated purity defaults as generated values during future migrations, so users who only changed unrelated settings still receive updated purity tuning.
+
+
 v0.3.1 | 2026-05-09
 * Ramp generation warnings now shown as a yellow icon next to the **Create Designations** button (tooltip contains the message):
     - "Ramp generation failed — no valid path found."
