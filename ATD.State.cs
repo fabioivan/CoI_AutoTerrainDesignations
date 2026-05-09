@@ -15,6 +15,7 @@ using Mafi.Core;
 using Mafi.Core.Buildings.Mine;
 using Mafi.Core.Buildings.Towers;
 using Mafi.Core.Entities;
+using Mafi.Core.PathFinding;
 using Mafi.Core.Products;
 using Mafi.Core.Prototypes;
 using Mafi.Core.Terrain;
@@ -39,6 +40,8 @@ namespace AutoTerrainDesignations
         private static WorldMapManager? s_worldMapManager;
         private static IEntitiesManager? s_entitiesManager;
         private static TerrainPropsManager? s_terrainPropsManager;
+        private static IVehiclePathFindingManager? s_vehiclePathFindingManager;
+        private static VehiclePathFindingParams? s_excavatorPathFindingParams;
         private static string? s_modRootDirectoryPath;
 
         private const int BATCH_SIZE = 30;
@@ -187,7 +190,8 @@ namespace AutoTerrainDesignations
             IWorldMapManager worldMapManager,
             MonoBehaviour coroutineHost,
             IEntitiesManager entitiesManager,
-            TerrainPropsManager terrainPropsManager)
+            TerrainPropsManager terrainPropsManager,
+            IVehiclePathFindingManager? vehiclePathFindingManager = null)
         {
             // Load defaults after logging is initialized so diagnostics are visible.
             LoadSettingsFromJson();
@@ -198,6 +202,8 @@ namespace AutoTerrainDesignations
             s_worldMapManager = worldMapManager as WorldMapManager;
             s_entitiesManager = entitiesManager;
             s_terrainPropsManager = terrainPropsManager;
+            s_vehiclePathFindingManager = vehiclePathFindingManager;
+            s_excavatorPathFindingParams = FindExcavatorPathFindingParams(protosDb);
             s_startupTowerPrioritySyncCompleted = false;
             s_startupTowerPrioritySyncAttempts = 0;
 
@@ -232,6 +238,13 @@ namespace AutoTerrainDesignations
 
         /// <summary>Returns true once Initialize has completed successfully.</summary>
         internal static bool IsInitialized => s_desigManager != null && s_coroutineHost != null;
+
+        private static VehiclePathFindingParams FindExcavatorPathFindingParams(ProtosDb protosDb)
+        {
+            foreach (ExcavatorProto proto in protosDb.All<ExcavatorProto>())
+                return proto.PathFindingParams;
+            return VehiclePathFindingParams.DEFAULT;
+        }
 
     }
 }

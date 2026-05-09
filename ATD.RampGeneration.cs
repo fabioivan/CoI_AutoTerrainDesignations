@@ -588,7 +588,7 @@ namespace AutoTerrainDesignations
                 for (int lane = 0; lane < laneCount; lane++)
                 {
                     int rowTopHeight = Math.Max(Math.Max(nwHeights[lane], neHeights[lane]), Math.Max(seHeights[lane], swHeights[lane]));
-                    if (rowTopHeight <= GetSurfaceHeight(terrMgr, currentTiles[lane]))
+                    if (rowTopHeight < GetSurfaceHeight(terrMgr, currentTiles[lane]))
                     {
                         isAboveSurfaceEverywhere = false;
                         break;
@@ -919,10 +919,10 @@ namespace AutoTerrainDesignations
         private static bool DoesTileOverlapBuildingFootprint(Tile2i tile, int rampDepth, Tile2i rampDirection)
         {
             // A designation tile covers world tiles from (tile.X, tile.Y) to (tile.X+3, tile.Y+3).
-            // The requested safety margin is 1 world tile per depth.
+            // The requested safety margin is 1 world tile per depth, plus one extra tile.
             // Apply margin only perpendicular to the ramp direction, not along the ramp axis.
             int safeDepth = Math.Max(1, rampDepth);
-            int marginWorldTiles = safeDepth;
+            int marginWorldTiles = safeDepth + 1;
 
             int minDx = 0;
             int maxDx = 3;

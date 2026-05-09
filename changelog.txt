@@ -1,7 +1,10 @@
 v0.3.0a | 2026-05-09
-* Fixed: inspector panels appeared twice due to Harmony postfix firing on chained constructors
-* Ramp generation warnings now shown as a yellow icon next to the **Create Designations** button (tooltip contains the message) instead of a text row — no game notification system involved
-* Removed all use of the game's notification system; mod is now fully safe to remove from existing saves
+* Ramp generation warnings now shown as a yellow icon next to the **Create Designations** button (tooltip contains the message):
+    - "Ramp generation failed — no valid path found."
+    - "Ramp placed but did not reach the surface — excavators may not be able to excavate."
+    - "Couldn't find a valid path from the tower to the generated ramp. Check for access problems."
+* Increased generated ramp safety margin around nearby buildings by 1 tile.
+* Renamed the **Target product** label to **Scanning filter** to avoid confusion with mining priority.
 
 
 v0.3.0 | 2026-05-08

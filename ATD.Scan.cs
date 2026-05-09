@@ -15,6 +15,8 @@ using Mafi;
 using Mafi.Collections;
 using Mafi.Core.Buildings.Mine;
 using Mafi.Core.Buildings.Towers;
+using Mafi.Core.Entities;
+using Mafi.Core.PathFinding;
 using Mafi.Core.Products;
 using Mafi.Core.Prototypes;
 using Mafi.Core.Terrain;
@@ -268,9 +270,7 @@ namespace AutoTerrainDesignations
                 }
                 else if (rampOutcome == RampPlacementOutcome.Crested)
                 {
-                    bool accessible = s_desigManager == null
-                        || s_desigManager.GetDesignationAt(rampTopTile) is not { HasValue: true } d
-                        || d.Value.IsReadyToBeMined(false, RelTile1i.Zero);
+                    bool accessible = IsRampMouthReachableFromTower(tower, rampTopTile, bbMin, bbMax);
                     SetTowerLastRampOutcome(tower, accessible ? RampPlacementOutcome.Crested : RampPlacementOutcome.NotAccessible);
                 }
             }
@@ -288,6 +288,167 @@ namespace AutoTerrainDesignations
                 OreCompositionPanel.ResetContent(inspectorInstance);
                 DesignationPanel.RefreshDisplays(inspectorInstance);
             }
+        }
+
+        private const int RAMP_ACCESS_SEARCH_MARGIN_TILES = 96;
+        private const int MAX_RAMP_ACCESS_SEARCH_TILES = 250000;
+        private static readonly RelTile2i[] s_rampAccessSearchDirections =
+        {
+            new RelTile2i(1, 0),
+            new RelTile2i(-1, 0),
+            new RelTile2i(0, 1),
+            new RelTile2i(0, -1)
+        };
+
+        private static bool IsRampMouthReachableFromTower(
+            IAreaManagingTower tower,
+            Tile2i rampMouthOrigin,
+            Tile2i bbMin,
+            Tile2i bbMax)
+        {
+            if (s_vehiclePathFindingManager == null || s_excavatorPathFindingParams == null)
+            {
+                Log.Warning("[ATD] Ramp access check skipped because vehicle pathfinding is unavailable.");
+                return true;
+            }
+
+            IPathabilityProvider pathabilityProvider = s_vehiclePathFindingManager.PathabilityProvider;
+            VehiclePathFindingParams pfParams = s_excavatorPathFindingParams;
+            Tile2i towerPosition = GetTowerPosition(tower, bbMin, bbMax);
+
+            try
+            {
+                pathabilityProvider.UpdateChangedTiles();
+            }
+            catch
+            {
+            }
+
+            if (!TryFindNearestPathableTile(pathabilityProvider, pfParams, towerPosition, out Tile2i start))
+            {
+                return false;
+            }
+
+            HashSet<Tile2i> targetTiles = BuildRampMouthTargetTiles(rampMouthOrigin, pathabilityProvider, pfParams);
+            if (targetTiles.Count == 0)
+            {
+                return false;
+            }
+
+            if (targetTiles.Contains(start))
+            {
+                return true;
+            }
+
+            int minX = Math.Min(Math.Min(bbMin.X, towerPosition.X), rampMouthOrigin.X) - RAMP_ACCESS_SEARCH_MARGIN_TILES;
+            int minY = Math.Min(Math.Min(bbMin.Y, towerPosition.Y), rampMouthOrigin.Y) - RAMP_ACCESS_SEARCH_MARGIN_TILES;
+            int maxX = Math.Max(Math.Max(bbMax.X, towerPosition.X), rampMouthOrigin.X + 3) + RAMP_ACCESS_SEARCH_MARGIN_TILES;
+            int maxY = Math.Max(Math.Max(bbMax.Y, towerPosition.Y), rampMouthOrigin.Y + 3) + RAMP_ACCESS_SEARCH_MARGIN_TILES;
+
+            var visited = new HashSet<Tile2i>();
+            var queue = new Queue<Tile2i>();
+            visited.Add(start);
+            queue.Enqueue(start);
+
+            while (queue.Count > 0 && visited.Count < MAX_RAMP_ACCESS_SEARCH_TILES)
+            {
+                Tile2i current = queue.Dequeue();
+
+                foreach (RelTile2i direction in s_rampAccessSearchDirections)
+                {
+                    Tile2i next = current + direction;
+                    if (next.X < minX || next.X > maxX || next.Y < minY || next.Y > maxY)
+                        continue;
+                    if (visited.Contains(next))
+                        continue;
+                    if (!pathabilityProvider.IsPathable(next, pfParams.PathabilityQueryMask))
+                        continue;
+                    if (targetTiles.Contains(next))
+                        return true;
+
+                    visited.Add(next);
+                    queue.Enqueue(next);
+                }
+            }
+
+            return false;
+        }
+
+        private static Tile2i GetTowerPosition(IAreaManagingTower tower, Tile2i bbMin, Tile2i bbMax)
+        {
+            if (tower is IEntityWithPosition positioned)
+                return positioned.Position2f.Tile2i;
+            return new Tile2i((bbMin.X + bbMax.X) / 2, (bbMin.Y + bbMax.Y) / 2);
+        }
+
+        private static HashSet<Tile2i> BuildRampMouthTargetTiles(
+            Tile2i rampMouthOrigin,
+            IPathabilityProvider pathabilityProvider,
+            VehiclePathFindingParams pfParams)
+        {
+            var targetTiles = new HashSet<Tile2i>();
+            for (int y = 0; y < 4; y++)
+            {
+                for (int x = 0; x < 4; x++)
+                {
+                    Tile2i target = rampMouthOrigin + new RelTile2i(x, y);
+                    if (pathabilityProvider.IsPathable(target, pfParams.PathabilityQueryMask))
+                    {
+                        targetTiles.Add(target);
+                    }
+                }
+            }
+
+            return targetTiles;
+        }
+
+        private static bool TryFindNearestPathableTile(
+            IPathabilityProvider pathabilityProvider,
+            VehiclePathFindingParams pfParams,
+            Tile2i origin,
+            out Tile2i pathableTile)
+        {
+            if (pathabilityProvider.IsPathable(origin, pfParams.PathabilityQueryMask))
+            {
+                pathableTile = origin;
+                return true;
+            }
+
+            for (int radius = 1; radius <= 24; radius++)
+            {
+                for (int y = -radius; y <= radius; y++)
+                {
+                    if (TryUsePathableTile(pathabilityProvider, pfParams, origin + new RelTile2i(-radius, y), out pathableTile)
+                        || TryUsePathableTile(pathabilityProvider, pfParams, origin + new RelTile2i(radius, y), out pathableTile))
+                        return true;
+                }
+
+                for (int x = -radius + 1; x < radius; x++)
+                {
+                    if (TryUsePathableTile(pathabilityProvider, pfParams, origin + new RelTile2i(x, -radius), out pathableTile)
+                        || TryUsePathableTile(pathabilityProvider, pfParams, origin + new RelTile2i(x, radius), out pathableTile))
+                        return true;
+                }
+            }
+
+            pathableTile = origin;
+            return false;
+        }
+
+        private static bool TryUsePathableTile(
+            IPathabilityProvider pathabilityProvider,
+            VehiclePathFindingParams pfParams,
+            Tile2i tile,
+            out Tile2i pathableTile)
+        {
+            if (pathabilityProvider.IsPathable(tile, pfParams.PathabilityQueryMask))
+            {
+                pathableTile = tile;
+                return true;
+            }
+
+            pathableTile = tile;
+            return false;
         }
 
         internal static void CreateDesignationsForTower(IAreaManagingTower tower)

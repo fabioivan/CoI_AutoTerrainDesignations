@@ -14,6 +14,7 @@ using Mafi.Core.Entities;
 using Mafi.Core.Game;
 using Mafi.Core.GameLoop;
 using Mafi.Core.Mods;
+using Mafi.Core.PathFinding;
 using Mafi.Core.Prototypes;
 using Mafi.Core.Console;
 using Mafi.Core.Terrain.Designation;
@@ -170,10 +171,11 @@ public sealed class AutoTerrainDesignationsMod : IMod, IDisposable
             IWorldMapManager worldMapManager = resolver.Resolve<IWorldMapManager>();
             IEntitiesManager entitiesManager = resolver.Resolve<IEntitiesManager>();
             TerrainPropsManager terrainPropsManager = resolver.Resolve<TerrainPropsManager>();
+            IVehiclePathFindingManager vehiclePathFindingManager = resolver.Resolve<IVehiclePathFindingManager>();
             AutoTerrainDesignationsTicker ticker = new GameObject("AutoTerrainDesignationsTicker").AddComponent<AutoTerrainDesignationsTicker>();
             UnityEngine.Object.DontDestroyOnLoad(ticker.gameObject);
             AutoDepthDesignation.SetModRootDirectoryPath(Manifest.RootDirectoryPath);
-            AutoDepthDesignation.Initialize(desigManager, protosDb, worldMapManager, ticker, entitiesManager, terrainPropsManager);
+            AutoDepthDesignation.Initialize(desigManager, protosDb, worldMapManager, ticker, entitiesManager, terrainPropsManager, vehiclePathFindingManager);
 
             // Corner designation mode — TerrainCursor, TerrainDesignationsRenderer and
             // CursorManager may only be available on the Unity side; fail gracefully if not resolvable.

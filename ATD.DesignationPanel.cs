@@ -380,7 +380,7 @@ namespace AutoTerrainDesignations
             if (orePicker != null)
             {
                 var oreRow = new Row().MarginTop(1.pt());
-                oreRow.Add(new Label(new LocStrFormatted("Target product:"))
+                oreRow.Add(new Label(new LocStrFormatted("Scanning filter:"))
                     .Tooltip(new LocStrFormatted("Force the scan to target a specific product. None = useful products first, then debris, then dirt.")));
                 oreRow.Add(new UiComponent().FlexGrow(1f));
                 oreRow.Add(orePicker);
@@ -404,7 +404,7 @@ namespace AutoTerrainDesignations
                     ? "Ramp generation failed \u2014 no valid path found."
                     : outcome == AutoDepthDesignation.RampPlacementOutcome.Truncated
                         ? "Ramp placed but did not reach the surface \u2014 excavators may not be able to excavate."
-                        : "Ramp placed but may not be accessible to excavators.";
+                        : "Couldn't find a valid path from the tower to the generated ramp. Check for access problems.";
                 b.RampWarningIcon.Tooltip(new LocStrFormatted(msg));
             }
         }
