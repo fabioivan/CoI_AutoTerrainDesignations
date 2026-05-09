@@ -56,6 +56,9 @@ namespace AutoTerrainDesignations
             public int OrePurityLevel { get; private set; }
             public int CorridorClearance { get; private set; }
 
+            /// <summary>Outcome of the most recent ramp generation attempt. Null = no scan run yet.</summary>
+            public RampPlacementOutcome? LastRampOutcome { get; set; }
+
             public ATDTowerSettings(int maxHeightDiff, int rampWidth, int maxLayersToExcavate, int? maxDepthToDigTo, int orePurityLevel, int corridorClearance)
             {
                 SetMaxHeightDiff(maxHeightDiff);
@@ -173,6 +176,10 @@ namespace AutoTerrainDesignations
 
         internal static int GetTowerCorridorClearance(IAreaManagingTower tower) => GetOrCreateTowerSettings(tower).CorridorClearance;
         internal static void SetTowerCorridorClearance(IAreaManagingTower tower, int value) => GetOrCreateTowerSettings(tower).SetCorridorClearance(value);
+
+        internal static RampPlacementOutcome? GetTowerLastRampOutcome(IAreaManagingTower tower) => GetOrCreateTowerSettings(tower).LastRampOutcome;
+        internal static void SetTowerLastRampOutcome(IAreaManagingTower tower, RampPlacementOutcome outcome) => GetOrCreateTowerSettings(tower).LastRampOutcome = outcome;
+        internal static void ClearTowerLastRampOutcome(IAreaManagingTower tower) => GetOrCreateTowerSettings(tower).LastRampOutcome = null;
 
         public static void Initialize(
             ITerrainDesignationsManager desigManager,

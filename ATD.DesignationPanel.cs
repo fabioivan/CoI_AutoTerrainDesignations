@@ -42,6 +42,7 @@ namespace AutoTerrainDesignations
             public Mafi.Unity.Ui.Library.Display MinElevDisplay { get; }
             public Mafi.Unity.Ui.Library.Display OrePurityDisplay { get; }
             public Mafi.Unity.Ui.Library.Display ClearanceDisplay { get; }
+            public Icon RampWarningIcon { get; }
 
             public Bindings(
                 Func<IAreaManagingTower?> getTower,
@@ -49,7 +50,8 @@ namespace AutoTerrainDesignations
                 Mafi.Unity.Ui.Library.Display maxLayersDisplay,
                 Mafi.Unity.Ui.Library.Display minElevDisplay,
                 Mafi.Unity.Ui.Library.Display orePurityDisplay,
-                Mafi.Unity.Ui.Library.Display clearanceDisplay)
+                Mafi.Unity.Ui.Library.Display clearanceDisplay,
+                Icon rampWarningIcon)
             {
                 GetTower = getTower;
                 RampWidthDisplay = rampWidthDisplay;
@@ -57,11 +59,20 @@ namespace AutoTerrainDesignations
                 MinElevDisplay = minElevDisplay;
                 OrePurityDisplay = orePurityDisplay;
                 ClearanceDisplay = clearanceDisplay;
+                RampWarningIcon = rampWarningIcon;
             }
         }
 
         private static readonly Dictionary<object, Bindings> s_bindings =
             new Dictionary<object, Bindings>();
+
+        internal static bool HasBindings(object key) => s_bindings.ContainsKey(key);
+
+        internal static void ClearRampWarning(object key)
+        {
+            if (s_bindings.TryGetValue(key, out var b))
+                b.RampWarningIcon.SetVisible(false);
+        }
 
         internal static void Initialize(ProtosDb? protosDb)
         {
@@ -82,6 +93,7 @@ namespace AutoTerrainDesignations
             b.MinElevDisplay.SetValue(new LocStrFormatted(MinElevText(AutoDepthDesignation.GetTowerMaxDepthToDigTo(tower))));
             b.OrePurityDisplay.SetValue(new LocStrFormatted(OrePurityLevelText(AutoDepthDesignation.GetTowerOrePurityLevel(tower))));
             b.ClearanceDisplay.SetValue(new LocStrFormatted(ClearanceLevelText(AutoDepthDesignation.GetTowerCorridorClearance(tower))));
+            RefreshRampWarning(b, tower);
         }
 
         /// <summary>
@@ -150,6 +162,13 @@ namespace AutoTerrainDesignations
                 }
             }
 
+            // --- Ramp warning icon (created before buttons so closures can capture it) ---
+            var rampWarningIcon = new Icon()
+                .Value("Assets/Unity/UserInterface/General/Warning128.png", new ColorRgba(255, 200, 0))
+                .Size(20.px(), 20.px())
+                .AlignSelfCenter();
+            rampWarningIcon.SetVisible(false);
+
             // --- Dig button ---
             var digBtn = new ButtonIconText(
                 Button.Primary,
@@ -161,6 +180,7 @@ namespace AutoTerrainDesignations
                     {
                         var tower = getTower();
                         if (tower == null) return;
+                        rampWarningIcon.SetVisible(false);
                         AutoDepthDesignation.CreateDesignationsForTower(tower, key);
                     }
                     catch (Exception ex) { Debug.Log($"[ATD] Dig button click EXCEPTION: {ex}"); }
@@ -177,6 +197,8 @@ namespace AutoTerrainDesignations
                     {
                         var tower = getTower();
                         if (tower == null) return;
+                        rampWarningIcon.SetVisible(false);
+                        AutoDepthDesignation.ClearTowerLastRampOutcome(tower);
                         AutoDepthDesignation.MarkDebrisForRemovalForTower(tower);
                     }
                     catch (Exception ex) { Debug.Log($"[ATD] Debris button click EXCEPTION: {ex}"); }
@@ -193,6 +215,8 @@ namespace AutoTerrainDesignations
                     {
                         var tower = getTower();
                         if (tower == null) return;
+                        rampWarningIcon.SetVisible(false);
+                        AutoDepthDesignation.ClearTowerLastRampOutcome(tower);
                         AutoDepthDesignation.ClearDesignationsForTower(tower);
                     }
                     catch (Exception ex) { Debug.Log($"[ATD] Clear button click EXCEPTION: {ex}"); }
@@ -206,6 +230,7 @@ namespace AutoTerrainDesignations
             var contentRow = new Row().Gap(3.pt()).AlignItemsEnd();
             contentRow.Add(new UiComponent().FlexGrow(1f));
             contentRow.Add(digBtn);
+            contentRow.Add(rampWarningIcon);
             contentRow.Add(new UiComponent().FlexGrow(1f));
             contentRow.Add(clearBtn);
             contentRow.Add(debrisBtn);
@@ -362,8 +387,26 @@ namespace AutoTerrainDesignations
                 panel.BodyAdd(oreRow);
             }
 
-            s_bindings[key] = new Bindings(getTower, rampWidthDisplay, maxLayersDisplay, minElevDisplay, orePurityDisplay, clearanceDisplay);
+            s_bindings[key] = new Bindings(getTower, rampWidthDisplay, maxLayersDisplay, minElevDisplay, orePurityDisplay, clearanceDisplay, rampWarningIcon);
             return panel;
+        }
+
+        private static void RefreshRampWarning(Bindings b, IAreaManagingTower tower)
+        {
+            AutoDepthDesignation.RampPlacementOutcome? outcome = AutoDepthDesignation.GetTowerLastRampOutcome(tower);
+            bool hasWarning = outcome == AutoDepthDesignation.RampPlacementOutcome.Failed
+                || outcome == AutoDepthDesignation.RampPlacementOutcome.Truncated
+                || outcome == AutoDepthDesignation.RampPlacementOutcome.NotAccessible;
+            b.RampWarningIcon.SetVisible(hasWarning);
+            if (hasWarning)
+            {
+                string msg = outcome == AutoDepthDesignation.RampPlacementOutcome.Failed
+                    ? "Ramp generation failed \u2014 no valid path found."
+                    : outcome == AutoDepthDesignation.RampPlacementOutcome.Truncated
+                        ? "Ramp placed but did not reach the surface \u2014 excavators may not be able to excavate."
+                        : "Ramp placed but may not be accessible to excavators.";
+                b.RampWarningIcon.Tooltip(new LocStrFormatted(msg));
+            }
         }
 
         private static Row BuildStepRow(

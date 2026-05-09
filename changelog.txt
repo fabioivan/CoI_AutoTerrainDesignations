@@ -1,3 +1,9 @@
+v0.3.0a | 2026-05-09
+* Fixed: inspector panels appeared twice due to Harmony postfix firing on chained constructors
+* Ramp generation warnings now shown as a yellow icon next to the **Create Designations** button (tooltip contains the message) instead of a text row — no game notification system involved
+* Removed all use of the game's notification system; mod is now fully safe to remove from existing saves
+
+
 v0.3.0 | 2026-05-08
 * Corner designations can now be placed manually from within any terrain designation tool (**M**, **Z**, **N**) — use the new **▲**/**▽** toolbar buttons or press **K** (**K** again flips between outer/inner); supports height offset (**Q**/**E**), rotation (**R**), and auto-snap to neighbouring designations; vanilla designations also snap to corner designations
     - Corner mode exits automatically when chosing one of the vanilla modes (flat/ramp) or the designation tool is deactivated

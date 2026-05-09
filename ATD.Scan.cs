@@ -257,13 +257,21 @@ namespace AutoTerrainDesignations
             if (generateRamps)
             {
                 LogDebug("Creating access ramp...");
-                bool rampCreated = CreateAccessRamp(tower, maxOreDepths, cornerHeights, terrMgr, towerSettings.RampWidth);
-                if (!rampCreated)
+                RampPlacementOutcome rampOutcome = CreateAccessRamp(tower, maxOreDepths, cornerHeights, terrMgr, towerSettings.RampWidth, out Tile2i rampTopTile);
+                if (rampOutcome == RampPlacementOutcome.Failed)
                 {
-                    string reason = string.IsNullOrWhiteSpace(s_lastRampFailureReason)
-                        ? "Ramp could not be generated."
-                        : s_lastRampFailureReason!;
-                    Log.Warning("Ramp generation failed: " + reason);
+                    SetTowerLastRampOutcome(tower, RampPlacementOutcome.Failed);
+                }
+                else if (rampOutcome == RampPlacementOutcome.Truncated)
+                {
+                    SetTowerLastRampOutcome(tower, RampPlacementOutcome.Truncated);
+                }
+                else if (rampOutcome == RampPlacementOutcome.Crested)
+                {
+                    bool accessible = s_desigManager == null
+                        || s_desigManager.GetDesignationAt(rampTopTile) is not { HasValue: true } d
+                        || d.Value.IsReadyToBeMined(false, RelTile1i.Zero);
+                    SetTowerLastRampOutcome(tower, accessible ? RampPlacementOutcome.Crested : RampPlacementOutcome.NotAccessible);
                 }
             }
             else
@@ -274,10 +282,11 @@ namespace AutoTerrainDesignations
             RemoveFulfilledDesignationsForTower(tower);
             CleanupIsolatedLeftoverDesignationsForTower(tower, maxOreDepths);
 
-            // Refresh ore composition panel after creating designations
+            // Refresh ore composition panel and designation panel after creating designations
             if (inspectorInstance != null)
             {
                 OreCompositionPanel.ResetContent(inspectorInstance);
+                DesignationPanel.RefreshDisplays(inspectorInstance);
             }
         }
 

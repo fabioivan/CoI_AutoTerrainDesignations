@@ -71,6 +71,7 @@ namespace AutoTerrainDesignations
 
         public static void InspectorActivatePostfix(object __instance)
         {
+            DesignationPanel.ClearRampWarning(__instance);
             DesignationPanel.RefreshDisplays(__instance);
             OreCompositionPanel.ResetContent(__instance);
         }
@@ -79,6 +80,9 @@ namespace AutoTerrainDesignations
         {
             try
             {
+                // Guard against double-injection when constructors chain (e.g. :this(...) calls).
+                if (DesignationPanel.HasBindings(__instance)) return;
+
                 if (!s_settingsLoadAttempted)
                     LoadSettingsFromJson();
 

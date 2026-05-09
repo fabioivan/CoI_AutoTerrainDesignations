@@ -5,6 +5,14 @@ description: Describe when these instructions should be loaded by the agent base
 
 <!-- Tip: Use /create-instructions in chat to generate content with agent assistance -->
 
+# Save removability — mandatory constraint
+**ATD must be safe to remove from an existing save.** The mod must never write anything to the game's save file. This rules out:
+- Any use of `INotificationsManager` / `NotifyOnce` — fired notifications whose TTL hasn't expired are serialized into the save and cause a `CorruptedSaveException` when the mod is absent on next load.
+- Registering any `EntityNotificationProto` or `GeneralNotificationProto` via `RegisterPrototypes`.
+- Any other game-side serialization hooks (proto IDs, entity components, etc.).
+
+If in-game feedback is needed (e.g. ramp failure), use **mod-internal UI only** — a `Row` with an `Icon` and `Label` inside the mod's inspector panel, shown/hidden with `SetVisible(bool)` and updated with `((IComponentWithText)label).SetValue(...)`. State that drives UI visibility must live entirely in mod memory (e.g. `ATDTowerSettings.LastRampOutcome`) and must **not** be persisted via any game serialization mechanism.
+
 # Versioning and release model
 - **Local/alpha packages** (built via `build.ps1 -Package`): increment the letter suffix on each package — `0.2.5a`, `0.2.5b`, etc. Update both `manifest.json` and `changelog.txt` to the new letter version.
 - **Public releases** (GitHub + CoI Hub): collate all lettered alpha changes into a single new version (e.g. `0.2.5a + 0.2.5b + 0.2.5c → 0.2.6`). Update both `manifest.json` and `changelog.txt`.
