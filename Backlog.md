@@ -72,3 +72,5 @@ During implementation: use a debug/status bar.
 
 ## Refactor out of the temporary .cs files created during development of farming designations
 
+### Consider improving land reclaim algo; consumes more dirt than necessary as it slides less steep
+

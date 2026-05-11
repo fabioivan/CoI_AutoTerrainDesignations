@@ -26,7 +26,7 @@ Allowed notification pattern:
 - **Local/alpha packages** (built via `build.ps1 -Package`): increment the letter suffix on each package — `0.2.5a`, `0.2.5b`, etc. Update both `manifest.json` and `changelog.txt` to the new letter version.
 - **Public releases** (CoI Hub): collate all lettered alpha changes into a single new version (e.g. `0.2.5a + 0.2.5b + 0.2.5c → 0.2.6`). Update both `manifest.json` and `changelog.txt`.
 - `manifest.json` version and the top `changelog.txt` entry must always match.
-- Do not propose version changes unless the user explicitly asks to package or release.
+- Major and minor version increments only on user's request.
 
 # Externalize constants to settings file
 If new constants or parameters are added to the mod, suggest that these be externalized into the settings file with clear descriptions, so power users can easily customize behavior without needing to modify code.
@@ -43,10 +43,6 @@ Reference for general queries regarding e.g. the manifest file, mod structure, a
 
 # Captain of Industry Decompiled Source
 - Decompiled game source code is in the `./../Mafi` directory. Use it to inspect game logic, entity behavior, and API details when needed. Be mindful that decompiled code may not have original variable names or comments, so it may require some interpretation.
-
-# Captain of Industry Wiki
-- Captain of Industry Wiki: https://wiki.coigame.com/
-- Not a 100% reliable source of truth (contains some obsolete information), but still a great place to read up on game mechanics, entity behavior.
 
 # Logging and Debugging
 - To inspect the latest part of the newest Captain of Industry log, run:
