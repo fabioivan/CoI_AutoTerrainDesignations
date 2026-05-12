@@ -165,6 +165,12 @@ public sealed class AtdConsoleCommands
         return AutoDepthDesignation.AnalyzeFarmingOriginForDebug(x, y);
     }
 
+    [ConsoleCommand(false, false, "Dumps complete farming preparation/session and read-only analysis details for every mine tower.", null)]
+    private string atdFarmingDumpAllTowers()
+    {
+        return AutoDepthDesignation.FormatAllTowersFarmingDesignationDump();
+    }
+
     [ConsoleCommand(false, false, "Stage 2 debug: prepares one NeedsPreparation farming origin by replacing it with target-1 leveling.", null)]
     private string atdFarmingPrepareOrigin(int x, int y)
     {

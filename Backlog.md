@@ -59,8 +59,8 @@ During implementation: use a debug/status bar.
 - Terrain modification can undermine a tower and make it fall. Keep this behavior for now: vanilla does not guard against this either, so farming automation should not add special tower-stability rules unless later testing shows it causes surprising automation-only failures.
 
 ## Alpha stabilization order
-1. Fix farming stutter by throttling or event-gating access/pathability checks.
-2. Tighten automation-owned scaffolding cleanup and phase boundaries.
+1. Fix farming stutter by throttling or event-gating access/pathability checks. [v0.3.1c: optimized access BFS target lookup and made farming automation opt-in per tower.]
+2. Tighten automation-owned scaffolding cleanup and phase boundaries. [v0.3.1c: completed preparation target-1 designations are hidden before controlled filling starts.]
    - Alpha finding: during preparation, completed preparation designations should usually remain active at `target - 1` until the whole preparation phase is complete. This lets them re-level if material slides on/off while neighboring prep work continues. The original player leveling rectangle should be restored only when the tower transitions to controlled filling with farmable dump rules.
    - Alpha finding: an origin reaching `Done` is provisional until the whole tower-level filling session is complete. Neighboring work can disturb it again, so filling must keep tracking and revalidating `Done` origins.
 3. Add sequenced filling batches so trucks preserve access while filling larger areas.
@@ -71,3 +71,4 @@ During implementation: use a debug/status bar.
 
 ### Consider improving land reclaim algo; consumes more dirt than necessary as it slides less steep
 
+##Instead of sequencing the filling, remove all vehicles from the area before filling, and fill as normal.

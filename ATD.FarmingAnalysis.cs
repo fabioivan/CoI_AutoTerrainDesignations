@@ -13,6 +13,8 @@ using System.Linq;
 using System.Text;
 using Mafi;
 using Mafi.Collections;
+using Mafi.Core;
+using Mafi.Core.Buildings.Mine;
 using Mafi.Core.Buildings.Towers;
 using Mafi.Core.Products;
 using Mafi.Core.Terrain;
@@ -68,6 +70,11 @@ namespace AutoTerrainDesignations
 
         internal static string FormatFarmingAnalysisForTower(IAreaManagingTower? tower)
         {
+            return FormatFarmingAnalysisForTower(tower, 10);
+        }
+
+        private static string FormatFarmingAnalysisForTower(IAreaManagingTower? tower, int? maxRows)
+        {
             if (tower == null)
                 return "[ATD Farming] No tower selected.";
 
@@ -97,11 +104,13 @@ namespace AutoTerrainDesignations
                 return sb.ToString().TrimEnd();
             }
 
-            const int maxRows = 40;
-            foreach (FarmingAnalysisRow row in rows
+            IEnumerable<FarmingAnalysisRow> orderedRows = rows
                 .OrderBy(row => row.Origin.Y)
-                .ThenBy(row => row.Origin.X)
-                .Take(maxRows))
+                .ThenBy(row => row.Origin.X);
+            if (maxRows.HasValue)
+                orderedRows = orderedRows.Take(maxRows.Value);
+
+            foreach (FarmingAnalysisRow row in orderedRows)
             {
                 string target = row.TargetHeight.HasValue ? row.TargetHeight.Value.ToString() : "-";
                 string heights = row.TargetHeight.HasValue
@@ -113,8 +122,60 @@ namespace AutoTerrainDesignations
                 sb.AppendLine($"  {row.State}: ({row.Origin.X},{row.Origin.Y}) target={target}, surface={heights} {farmable} {row.Detail}".TrimEnd());
             }
 
-            if (rows.Count > maxRows)
-                sb.AppendLine($"  ... {rows.Count - maxRows} more designation(s) omitted.");
+            if (maxRows.HasValue && rows.Count > maxRows.Value)
+                sb.AppendLine($"  ... {rows.Count - maxRows.Value} more designation(s) omitted.");
+
+            return sb.ToString().TrimEnd();
+        }
+
+        internal static string FormatAllTowersFarmingDesignationDump()
+        {
+            if (s_entitiesManager == null)
+                return "[ATD Farming] Entities manager is unavailable.";
+
+            var sb = new StringBuilder();
+            sb.AppendLine("[ATD Farming] Complete tower farming designation dump");
+
+            int towerCount = 0;
+            try
+            {
+                foreach (MineTower tower in s_entitiesManager.GetAllEntitiesOfType<MineTower>()
+                    .OrderBy(tower => tower.Position2f.Tile2i.Y)
+                    .ThenBy(tower => tower.Position2f.Tile2i.X))
+                {
+                    towerCount++;
+                    Tile2i position = tower.Position2f.Tile2i;
+                    bool hasEntityId = TryGetTowerEntityId(tower, out EntityId entityId) && entityId.IsValid;
+                    string towerId = hasEntityId
+                        ? entityId.ToString()
+                        : "unknown";
+
+                    sb.AppendLine();
+                    sb.AppendLine($"Tower {towerCount}: id={towerId}, position=({position.X},{position.Y})");
+                    sb.AppendLine(IsFarmingAutomationEnabledForTower(tower)
+                        ? "  Farming automation: on"
+                        : "  Farming automation: off");
+
+                    FarmingPreparationSession? session;
+                    if (hasEntityId && s_farmingPreparationSessions.TryGetValue(entityId, out session))
+                    {
+                        sb.AppendLine(FormatFarmingPreparationReport(session, null));
+                    }
+                    else
+                    {
+                        sb.AppendLine("  No active farming preparation session.");
+                    }
+
+                    sb.AppendLine(FormatFarmingAnalysisForTower(tower, null));
+                }
+            }
+            catch (Exception ex)
+            {
+                sb.AppendLine("  Dump failed: " + ex.Message);
+            }
+
+            if (towerCount == 0)
+                sb.AppendLine("  No mine towers found.");
 
             return sb.ToString().TrimEnd();
         }

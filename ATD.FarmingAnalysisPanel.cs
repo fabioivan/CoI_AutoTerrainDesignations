@@ -51,7 +51,7 @@ namespace AutoTerrainDesignations
                     .ObserveValue(() =>
                     {
                         var tower = entityProp.GetValue(inspector) as IAreaManagingTower;
-                        return new LocStrFormatted(AutoDepthDesignation.FormatFarmingPreparationStatusForTower(tower));
+                        return new LocStrFormatted(AutoDepthDesignation.FormatFarmingPreparationPanelStatusForTower(tower));
                     });
                 var automationToggle = new Toggle(standalone: true)
                     .Label(new LocStrFormatted("Farming automation"))
@@ -82,7 +82,7 @@ namespace AutoTerrainDesignations
                         entityProp.GetValue(inspector) as IAreaManagingTower));
                     analysisLabel.Value(new LocStrFormatted("Press \u21ba to analyze farming prep."));
                     statusLabel.Value(new LocStrFormatted(
-                        AutoDepthDesignation.FormatFarmingPreparationStatusForTower(entityProp.GetValue(inspector) as IAreaManagingTower)));
+                        AutoDepthDesignation.FormatFarmingPreparationPanelStatusForTower(entityProp.GetValue(inspector) as IAreaManagingTower)));
                 };
 
                 var panel = new PanelWithHeader()
@@ -128,7 +128,7 @@ namespace AutoTerrainDesignations
             string report = AutoDepthDesignation.FormatFarmingAnalysisForTower(tower);
             analysisLabel.Value(new LocStrFormatted(report));
 
-            string status = AutoDepthDesignation.FormatFarmingPreparationStatusForTower(tower);
+            string status = AutoDepthDesignation.FormatFarmingPreparationPanelStatusForTower(tower);
             statusLabel.Value(new LocStrFormatted(status));
         }
     }

@@ -654,7 +654,7 @@ namespace AutoTerrainDesignations
             sb.AppendLine();
             sb.AppendLine("  \"_comment\": \"AutoTerrainDesignations settings. These values set the defaults loaded at game start. Most parameters below can also be changed per mine tower directly in-game via the tower inspector \u2014 this file is for your convenience so you don't have to adjust them every new save.\",");
             sb.AppendLine();
-            sb.AppendLine("  \"_comment_batchSize\": \"How many designations are placed per coroutine frame before yielding to the game. Lower values keep the game more responsive during large scans; higher values complete scans faster. While paused, the effective batch size is boosted by x4 and clamped. Absolute max: 200. Default: 30.\",");
+            sb.AppendLine("  \"_comment_batchSize\": \"How many designations are placed per coroutine frame before yielding to the game while unpaused. Lower values keep the game more responsive during large scans; higher values complete scans faster. While paused, ATD does not batch-yield and finishes the placement pass in one coroutine step. Absolute max: 200. Default: 30.\",");
             sb.AppendLine($"  \"batchSize\": {s_batchSize},");
             sb.AppendLine();
             sb.AppendLine("  \"_comment_maxSlopeHeightDiff\": \"Default starting value for the Max Slope setting on each mine tower. Controls the maximum allowed height difference between adjacent designation corners during slope smoothing. Lower values produce flatter designations; higher values allow steeper steps. Can be adjusted per tower in-game. Min 1, max 3. Default: 1.\",");

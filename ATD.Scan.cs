@@ -787,8 +787,7 @@ namespace AutoTerrainDesignations
                 return configuredBatchSize;
             }
 
-            long boostedBatchSize = (long)configuredBatchSize * PAUSED_BATCH_MULTIPLIER;
-            return (int)Math.Min(MAX_BATCH_SIZE, boostedBatchSize);
+            return int.MaxValue;
         }
 
         private static bool IsRockProduct(LooseProductProto product)

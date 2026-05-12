@@ -24,6 +24,7 @@ using Mafi.Core.Terrain.Designation;
 using Mafi.Core.Terrain.Props;
 using Mafi.Core.Terrain.Resources;
 using Mafi.Core.Vehicles.Excavators;
+using Mafi.Core.Vehicles.Jobs;
 using Mafi.Core.World;
 using UnityEngine;
 
@@ -42,13 +43,13 @@ namespace AutoTerrainDesignations
         private static IEntitiesManager? s_entitiesManager;
         private static TerrainPropsManager? s_terrainPropsManager;
         private static IVehiclePathFindingManager? s_vehiclePathFindingManager;
+        private static ParkAndWaitJobFactory? s_parkAndWaitJobFactory;
         private static VehiclePathFindingParams? s_excavatorPathFindingParams;
         private static string? s_modRootDirectoryPath;
         private static int s_worldGeneration;
 
         private const int BATCH_SIZE = 30;
         private const int MAX_BATCH_SIZE = 200;
-        private const int PAUSED_BATCH_MULTIPLIER = 4;
         private const int HULL_CONNECTION_WIDTH = 2;
         private static int s_batchSize = BATCH_SIZE;
 
@@ -218,6 +219,7 @@ namespace AutoTerrainDesignations
             s_entitiesManager = null;
             s_terrainPropsManager = null;
             s_vehiclePathFindingManager = null;
+            s_parkAndWaitJobFactory = null;
             s_excavatorPathFindingParams = null;
             s_batchSize = BATCH_SIZE;
 
@@ -239,6 +241,7 @@ namespace AutoTerrainDesignations
             IEntitiesManager entitiesManager,
             TerrainPropsManager terrainPropsManager,
             IVehiclePathFindingManager? vehiclePathFindingManager = null,
+            ParkAndWaitJobFactory? parkAndWaitJobFactory = null,
             INotificationsManager? notificationsManager = null)
         {
             ResetWorldRuntimeState();
@@ -253,6 +256,7 @@ namespace AutoTerrainDesignations
             s_entitiesManager = entitiesManager;
             s_terrainPropsManager = terrainPropsManager;
             s_vehiclePathFindingManager = vehiclePathFindingManager;
+            s_parkAndWaitJobFactory = parkAndWaitJobFactory;
             s_excavatorPathFindingParams = FindExcavatorPathFindingParams(protosDb);
 
             if (protosDb.TryGetProto(new Proto.ID("MiningDesignator"), out TerrainDesignationProto proto))

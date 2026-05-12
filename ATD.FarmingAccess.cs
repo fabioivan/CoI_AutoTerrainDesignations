@@ -330,6 +330,7 @@ namespace AutoTerrainDesignations
             }
 
             var targetTilesByOrigin = new Dictionary<Tile2i, HashSet<Tile2i>>();
+            var originsByTargetTile = new Dictionary<Tile2i, List<Tile2i>>();
             foreach (TerrainDesignation designation in designations)
             {
                 if (!IsFarmingDesignationReadyForVehicleWork(designation, isFilling))
@@ -342,7 +343,19 @@ namespace AutoTerrainDesignations
                 if (targets.Count == 0)
                     inaccessible.Add(designation);
                 else
+                {
                     targetTilesByOrigin[designation.OriginTileCoord] = targets;
+                    foreach (Tile2i target in targets)
+                    {
+                        if (!originsByTargetTile.TryGetValue(target, out List<Tile2i> origins))
+                        {
+                            origins = new List<Tile2i>();
+                            originsByTargetTile[target] = origins;
+                        }
+
+                        origins.Add(designation.OriginTileCoord);
+                    }
+                }
             }
 
             if (targetTilesByOrigin.Count == 0)
@@ -371,10 +384,10 @@ namespace AutoTerrainDesignations
             {
                 Tile2i current = queue.Dequeue();
 
-                foreach (KeyValuePair<Tile2i, HashSet<Tile2i>> kvp in targetTilesByOrigin)
+                if (originsByTargetTile.TryGetValue(current, out List<Tile2i> reachedTargets))
                 {
-                    if (!reachableOrigins.Contains(kvp.Key) && kvp.Value.Contains(current))
-                        reachableOrigins.Add(kvp.Key);
+                    foreach (Tile2i reachedOrigin in reachedTargets)
+                        reachableOrigins.Add(reachedOrigin);
                 }
 
                 if (reachableOrigins.Count == targetTilesByOrigin.Count)

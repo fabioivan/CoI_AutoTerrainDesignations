@@ -1,3 +1,12 @@
+v0.3.1c | 2026-05-11
+* Reduced farming access/pathability check cost on large jobs by indexing reachable target tiles instead of checking every active designation for every visited path tile.
+* Changed experimental farming automation to opt-in per tower, preventing background farming/pathability work from running on towers where the player has not enabled it.
+* Fixed paused scans still adding designations incrementally; ATD now completes scan placement without batch-yielding while the game is paused.
+* Limited farming preparation analysis/status text in the inspector to 20 rows total; added **atd_farming_dump_all_towers** for a complete uncapped console dump.
+* Hidden completed temporary preparation designations before controlled filling starts so spilled fill material does not restart target-1 leveling fights.
+* Added a one-off excavator recall at the preparation-to-filling transition, cancelling current excavator jobs and sending assigned excavators back toward their mine tower before controlled filling activates.
+* Implemented sequencing of the filling job to reduce fights and mitigate vehicle lock-ins.
+
 v0.3.1b | 2026-05-10
 * Continued alpha testing for experimental farming designations.
 * Reduced farming stutter by throttling expensive access/pathability checks.
