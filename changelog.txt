@@ -1,6 +1,7 @@
 v0.3.1c | 2026-05-11
 * Renamed the farming inspector panel to **Farmland Preparation** and simplified it to a single **Farmland Preparation Automation** checkbox.
-* Hid detailed farming preparation analysis from the inspector. It can still be enabled for console/debug work with **atd_set_farming_analysis_debug true**.
+* Removed detailed farming preparation analysis from the inspector panel and removed the **atd_set_farming_analysis_debug** toggle.
+* Reduced farming automation tick overhead by keeping routine status updates to compact summaries; detailed per-origin farming diagnostics remain available through **atd_farming_dump_all_towers**.
 * Added **atd_set_re_enable_farming_on_load** / **atd_re_enable_farming_on_load** and the matching **ATDsettings.json** key **reEnableFarmingOnLoad** (default: true). On load, ATD re-enables farming automation for towers whose managed designations appear to be farmland preparation work.
 * Replaced the old experimental filling sequencing with a vehicle clear-out guard. Before final filling commits, ATD orders vehicles in the fill area to park at the tower, waits for moving vehicles to leave, rechecks before committing, and proceeds if a vehicle appears stuck or paused.
 * Delays switching the tower to farmable dump products until immediately before final fill designations are committed, preventing dirt/topsoil from being used on remaining preparation work.

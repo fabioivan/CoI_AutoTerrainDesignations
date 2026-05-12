@@ -34,7 +34,6 @@ public sealed class AtdConsoleCommands
         sb.AppendLine($"  MinCorridorClearance  = {AutoTerrainDesignationsMod.MinCorridorClearance}");
         sb.AppendLine($"  TerrainPanelCollapsed = {AutoTerrainDesignationsMod.TerrainDesignationsPanelCollapsed}");
         sb.AppendLine($"  OrePanelCollapsed     = {AutoTerrainDesignationsMod.OreCompositionPanelCollapsed}");
-        sb.AppendLine($"  FarmingAnalysisDebug  = {AutoTerrainDesignationsMod.FarmingAnalysisDebugEnabled}");
         sb.AppendLine($"  ReEnableFarmingOnLoad = {AutoTerrainDesignationsMod.ReEnableFarmingOnLoad}");
         sb.AppendLine($"  ExcavatorCompleteNtf  = {AutoTerrainDesignationsMod.ExcavatorCompletionNotificationsEnabled}");
         sb.Append(AutoDepthDesignation.FormatPurityArrays());
@@ -128,16 +127,6 @@ public sealed class AtdConsoleCommands
 
         AutoTerrainDesignationsMod.SetOreCompositionPanelCollapsed(parsed);
         return $"[ATD] OreCompositionPanelCollapsed set to {AutoTerrainDesignationsMod.OreCompositionPanelCollapsed}.";
-    }
-
-    [ConsoleCommand(false, false, "Sets whether the Farmland Preparation panel shows detailed debug analysis (true/false, on/off, 1/0).", null)]
-    private string atdSetFarmingAnalysisDebug(string value)
-    {
-        if (!TryParseConsoleBool(value, out bool parsed))
-            return $"[ATD] Invalid value '{value}'. Use true/false, on/off, yes/no, or 1/0.";
-
-        AutoTerrainDesignationsMod.SetFarmingAnalysisDebugEnabled(parsed);
-        return $"[ATD] FarmingAnalysisDebug set to {AutoTerrainDesignationsMod.FarmingAnalysisDebugEnabled}.";
     }
 
     [ConsoleCommand(false, false, "Sets whether ATD re-enables farming automation for apparent farmland towers on load (true/false, on/off, 1/0).", null)]

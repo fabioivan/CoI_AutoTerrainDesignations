@@ -96,7 +96,6 @@ public sealed class AutoTerrainDesignationsMod : IMod, IDisposable
         SetMinCorridorClearance(2);
         SetTerrainDesignationsPanelCollapsed(false);
         SetOreCompositionPanelCollapsed(false);
-        SetFarmingAnalysisDebugEnabled(false);
         SetReEnableFarmingOnLoad(true);
         SetExcavatorCompletionNotificationsEnabled(true);
     }
@@ -176,14 +175,6 @@ public sealed class AutoTerrainDesignationsMod : IMod, IDisposable
     public static void SetOreCompositionPanelCollapsed(bool value)
     {
         OreCompositionPanelCollapsed = value;
-    }
-
-    /// <summary>Whether the Farmland Preparation panel shows read-only analysis detail.</summary>
-    public static bool FarmingAnalysisDebugEnabled { get; private set; } = false;
-
-    public static void SetFarmingAnalysisDebugEnabled(bool value)
-    {
-        FarmingAnalysisDebugEnabled = value;
     }
 
     /// <summary>Whether ATD re-enables farming automation on loaded towers that look like farmland work.</summary>
