@@ -42,7 +42,7 @@ Reference for general queries regarding e.g. the manifest file, mod structure, a
 - Captain of Industry modding documentation: https://github.com/MaFi-Games/Captain-of-industry-modding
 
 # Captain of Industry Decompiled Source
-- Decompiled game source code is in the `%APPDATA%\Captain of Industry\Mafi` directory. In this workspace, the mod lives under `%APPDATA%\Captain of Industry\Mods\AutoTerrainDesignations`, so the relative path from the mod root is usually `..\..\Mafi`, not `..\Mafi`.
+- Decompiled game source code is in the `%APPDATA%\Captain of Industry\Mafi` directory. In this workspace, that folder is shown as **CoI Decompiled Source** (display name only), and from the mod root (`%APPDATA%\Captain of Industry\Mods\AutoTerrainDesignations`) the relative path is usually `..\..\Mafi`, not `..\Mafi`.
 - When in doubt, resolve it with PowerShell instead of guessing a relative path:
   ```powershell
   Get-ChildItem -LiteralPath "$env:APPDATA\Captain of Industry" -Directory -Filter Mafi
