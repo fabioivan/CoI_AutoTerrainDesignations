@@ -1,3 +1,7 @@
+v0.4.1 | 2026-05-14
+* Revised Swedish, German, and Russian translations — terminology aligned with base game wording and reviewed for accuracy across all panels, tooltips, and status messages
+
+
 v0.4.0 | 2026-05-14
 * Added farmland preparation automation for mine towers
     - Enabled via the **Farmland Preparation Automation** checkbox in the **Farmland Preparation** inspector panel

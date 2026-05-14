@@ -13,7 +13,7 @@
   ],
   [
     "notification.farming_complete",
-    "[ATD] {entity} har slutfört förberedelse och utfyllnad för jordbruk"
+    "[ATD] {entity} har slutfört förberedelse och fyllning av odlingsmark"
   ],
   [
     "notification.excavator_completed",
@@ -41,27 +41,27 @@
   ],
   [
     "panel.designations.title",
-    "Terrängmarkeringar"
+    "Terränganvisningar"
   ],
   [
     "panel.designations.description",
-    "Skapa automatiska terrängmarkeringar för det här tornet."
+    "Skapa automatiska terränganvisningar för det här tornet."
   ],
   [
     "panel.designations.create_button",
-    "Skapa markeringar"
+    "Skapa anvisningar"
   ],
   [
     "panel.designations.create_tooltip",
-    "Skanna och placera grävmarkeringar i tornets område."
+    "Skanna tornets område och placera grävanvisningar."
   ],
   [
     "panel.designations.debris_tooltip",
-    "Markera allt skräp i området för grävning/borttagning. Åsidosätter eventuella skogsmarkeringar."
+    "Placera grävanvisningar för allt skräp i området. Åsidosätter eventuella skogsbruksanvisningar."
   ],
   [
     "panel.designations.clear_tooltip",
-    "Rensa alla grävmarkeringar i tornets område."
+    "Rensa alla grävanvisningar i tornets område."
   ],
   [
     "panel.designations.ore_filter.auto",
@@ -77,11 +77,11 @@
   ],
   [
     "panel.designations.max_layers.label",
-    "Max lager att gräva"
+    "Max lager att gräva ut"
   ],
   [
     "panel.designations.max_layers.tooltip",
-    "Maximalt antal lager att gräva från ytan. (∞ = ingen gräns.)"
+    "Maximalt antal lager att gräva ut från ytan. (∞ = ingen gräns.)"
   ],
   [
     "panel.designations.elevation_limit.label",
@@ -89,15 +89,15 @@
   ],
   [
     "panel.designations.elevation_limit.tooltip",
-    "Maximalt (absolut) grävdjup (-∞ = ingen gräns.)"
+    "Maximal (absolut) grävnivå (-∞ = ingen gräns.)"
   ],
   [
     "panel.designations.ore_purity.label",
-    "Malmpuritet"
+    "Malmhalt"
   ],
   [
     "panel.designations.ore_purity.tooltip",
-    "Hur strikt skanningen filtrerar efter malmkvalitet.\nAv: inkludera alla rutor, gräv till fullt djup.\nLåg: uteslut mycket glesa rutor, trimma tunna malmrester längst ned.\nMedel: måttlig kvalitet — hoppa över rutor med mycket överlagring eller lite malm.\nHög: endast rika rutor med en ren malmkolumn.\nMax: nästan ren malm — strikt på överlagring, djup och malmdensitet."
+    "Hur strikt skanningen filtrerar efter malmhalt.\nAv: inkludera alla rutor, gräv till fullt djup.\nLåg: uteslut mycket glesa rutor, trimma tunna malmrester längst ned.\nMedel: måttlig halt — hoppa över rutor med mycket överlagring eller lite malm.\nHög: endast rika rutor med en ren malmkolumn.\nMax: nästan ren malm — strikt på överlagring, djup och malmdensitet."
   ],
   [
     "panel.designations.corridor_clearance.label",
@@ -137,19 +137,19 @@
   ],
   [
     "panel.farming.title",
-    "Förberedelse av åkermark"
+    "Förberedelse av odlingsmark"
   ],
   [
     "panel.farming.description",
-    "Automatiserar förberedelse och slutlig utfyllnad av plana nivåmarkeringar så att deras översta lager blir odlingsbart."
+    "Automatiserar förberedelse och slutlig fyllning av plana utjämningsanvisningar så att det översta lagret blir odlingsbart."
   ],
   [
     "panel.farming.automation_toggle.label",
-    "Automatisk förberedelse av åkermark"
+    "Automatisk förberedelse av odlingsmark"
   ],
   [
     "panel.farming.automation_toggle.tooltip",
-    "Förbered plana nivåmarkeringar för åkermark genom att rensa olämpligt ytmaterial och sedan återställa de slutliga utfyllnadsordrarna."
+    "Förbered plana utjämningsanvisningar för odlingsmark genom att rensa olämpligt ytmaterial och sedan återställa de slutliga fyllningsanvisningarna."
   ],
   [
     "panel.ore.title",
@@ -157,7 +157,7 @@
   ],
   [
     "panel.ore.description",
-    "Malmresurser inom tornets aktuella grävmarkeringar. (Tar inte hänsyn till potentiella ras.)"
+    "Malmresurser inom tornets aktuella grävanvisningar. (Tar inte hänsyn till potentiella ras.)"
   ],
   [
     "panel.ore.prompt_scan",
@@ -173,7 +173,7 @@
   ],
   [
     "panel.ore.no_minable_designations",
-    "Inga grävbara markeringar hittades."
+    "Inga grävanvisningar hittades."
   ],
   [
     "panel.ore.priority_selected_tooltip",
@@ -185,103 +185,103 @@
   ],
   [
     "farming.no_tower",
-    "[ATD Jordbruk] Inget torn valt."
+    "[ATD Odlingsmark] Inget torn valt."
   ],
   [
     "farming.designation_manager_unavailable",
-    "[ATD Jordbruk] Hanteraren för terrängmarkeringar är inte tillgänglig."
+    "[ATD Odlingsmark] Hanteraren för terränganvisningar är inte tillgänglig."
   ],
   [
     "farming.leveling_proto_unavailable",
-    "[ATD Jordbruk] Nivelleringsprototypen är inte tillgänglig."
+    "[ATD Odlingsmark] Utjämningsprototypen är inte tillgänglig."
   ],
   [
     "farming.no_stable_entity_id",
-    "[ATD Jordbruk] Det valda tornet har inget stabilt enhets-id."
+    "[ATD Odlingsmark] Det valda tornet har inget stabilt enhets-id."
   ],
   [
     "farming.filling_waiting_all_tracked_ready",
-    "[ATD Jordbruk] Utfyllnad väntar: alla spårade tornmarkeringar måste vara ReadyForFilling eller Done innan tornets dumpningsregler kan ändras."
+    "[ATD Odlingsmark] Fyllning väntar: alla spårade tornanvisningar måste vara ReadyForFilling eller Done innan tornets dumpningsfilter kan ändras."
   ],
   [
     "farming.automation_enabled",
-    "[ATD Jordbruk] Jordbruksautomatik aktiverad."
+    "[ATD Odlingsmark] Automatik för odlingsmark aktiverad."
   ],
   [
     "farming.stage3_started",
-    "[ATD Jordbruk] Steg 3-förberedelse startad."
+    "[ATD Odlingsmark] Steg 3-förberedelse startad."
   ],
   [
     "farming.already_disabled",
-    "[ATD Jordbruk] Jordbruksautomatik är redan inaktiverad för det här tornet."
+    "[ATD Odlingsmark] Automatik för odlingsmark är redan inaktiverad för det här tornet."
   ],
   [
     "farming.restore_attempted",
-    "[ATD Jordbruk] Återställning försökt: återställda={0}, misslyckade={1}."
+    "[ATD Odlingsmark] Återställning försökt: återställda={0}, misslyckade={1}."
   ],
   [
     "farming.restored_origins",
-    "[ATD Jordbruk] Återställde {0} steg 3-origin(er) för det här tornet."
+    "[ATD Odlingsmark] Återställde {0} steg 3-origin(er) för det här tornet."
   ],
   [
     "farming.no_stage3_session",
-    "[ATD Jordbruk] Ingen steg 3-förberedelse finns för det här tornet. Kör förberedelse först."
+    "[ATD Odlingsmark] Ingen steg 3-förberedelse finns för det här tornet. Kör förberedelse först."
   ],
   [
     "farming.session_already_active",
-    "[ATD Jordbruk] En förberedelse-/utfyllnadssession är redan aktiv för det här tornet."
+    "[ATD Odlingsmark] En förberedelse-/fyllningssession är redan aktiv för det här tornet."
   ],
   [
     "farming.filling_waiting_preparation",
-    "[ATD Jordbruk] Utfyllnad väntar: en eller flera tornmarkeringar behöver fortfarande nivellering eller förberedelse."
+    "[ATD Odlingsmark] Fyllning väntar: en eller flera tornanvisningar behöver fortfarande utjämning eller förberedelse."
   ],
   [
     "farming.stage4_designation_manager_unavailable",
-    "[ATD Jordbruk] Steg 4 blockerat: markeringshanteraren är inte tillgänglig."
+    "[ATD Odlingsmark] Steg 4 blockerat: anvisningshanteraren är inte tillgänglig."
   ],
   [
     "farming.stage4_leveling_proto_unavailable",
-    "[ATD Jordbruk] Steg 4 blockerat: nivelleringsprototypen är inte tillgänglig."
+    "[ATD Odlingsmark] Steg 4 blockerat: utjämningsprototypen är inte tillgänglig."
   ],
   [
     "farming.no_origins_ready",
-    "[ATD Jordbruk] Inga origins är redo för utfyllnad/återställning. Kör förberedelse först eller vänta tills nivellering/förberedelse är klar."
+    "[ATD Odlingsmark] Inga origins är redo för fyllning/återställning. Kör förberedelse först eller vänta tills utjämning/förberedelse är klar."
   ],
   [
     "farming.stage4_waiting_vehicles",
-    "[ATD Jordbruk] Steg 4-utfyllnad startad: väntar kort på att {0} fordon lämnar utfyllnadsområdet innan utfyllnadsmarkeringar bekräftas."
+    "[ATD Odlingsmark] Steg 4-fyllning startad: väntar kort på att {0} fordon lämnar fyllningsområdet innan fyllningsanvisningar bekräftas."
   ],
   [
     "farming.stage4_failed_restore",
-    "[ATD Jordbruk] Steg 4 blockerat: kunde inte återställa {0} redo origin(er)."
+    "[ATD Odlingsmark] Steg 4 blockerat: kunde inte återställa {0} redo origin(er)."
   ],
   [
     "farming.stage4_no_fill_origins",
-    "[ATD Jordbruk] Steg 4 blockerat: inga utfyllnads-origins kunde aktiveras."
+    "[ATD Odlingsmark] Steg 4 blockerat: inga fyllnings-origins kunde aktiveras."
   ],
   [
     "farming.stage4_started",
-    "[ATD Jordbruk] Steg 4-utfyllnad startad: aktiverade={0}, misslyckade={1}, odlingsbaraProdukter={2}."
+    "[ATD Odlingsmark] Steg 4-fyllning startad: aktiverade={0}, misslyckade={1}, odlingsbaraProdukter={2}."
   ],
   [
     "farming.automation_off_period",
-    "[ATD Jordbruk] Jordbruksautomatik: av."
+    "[ATD Odlingsmark] Automatik för odlingsmark: av."
   ],
   [
     "farming.automation_on",
-    "[ATD Jordbruk] Jordbruksautomatik: på"
+    "[ATD Odlingsmark] Automatik för odlingsmark: på"
   ],
   [
     "farming.automation_off",
-    "[ATD Jordbruk] Jordbruksautomatik: av"
+    "[ATD Odlingsmark] Automatik för odlingsmark: av"
   ],
   [
     "farming.summary_counts",
-    "  Aktiva origins={0}, Analys/Nivellering={1}, Förbereder={2}, RedoFörUtfyllnad={3}, Utfyllnad={4}, Klara={5}, Blockerade={6}"
+    "  Aktiva origins={0}, Analys/Utjämning={1}, Förbereder={2}, RedoFörFyllning={3}, Fyllning={4}, Klara={5}, Blockerade={6}"
   ],
   [
     "farming.tower_dump_rules_restricted",
-    "  Tornets dumpningsregler är tillfälligt begränsade till odlingsbara produkter."
+    "  Tornets dumpningsfilter är tillfälligt begränsat till odlingsbara produkter."
   ],
   [
     "farming.more_origins_omitted",

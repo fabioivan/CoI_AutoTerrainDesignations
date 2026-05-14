@@ -17,7 +17,7 @@
   ],
   [
     "notification.excavator_completed",
-    "[ATD] {entity} hat einen Bagger abgeschlossen"
+    "[ATD] {entity} hat einen Bagger fertiggestellt"
   ],
   [
     "common.level.off",
@@ -41,27 +41,27 @@
   ],
   [
     "panel.designations.title",
-    "Geländemarkierungen"
+    "Geländegebiete"
   ],
   [
     "panel.designations.description",
-    "Erstellt automatische Geländemarkierungen für diesen Turm."
+    "Erstellt automatische Geländegebiete für diesen Turm."
   ],
   [
     "panel.designations.create_button",
-    "Markierungen erstellen"
+    "Gebiete erstellen"
   ],
   [
     "panel.designations.create_tooltip",
-    "Scannt und platziert Abbaumarkierungen im Bereich dieses Turms."
+    "Scannt den Bereich dieses Turms und platziert Bergbaugebiete."
   ],
   [
     "panel.designations.debris_tooltip",
-    "Markiert allen Schutt im Bereich zum Abbauen/Entfernen. Überschreibt alle Forstmarkierungen."
+    "Platziert Bergbaugebiete für allen Schutt im Bereich. Überschreibt alle Forstgebiete."
   ],
   [
     "panel.designations.clear_tooltip",
-    "Entfernt alle Abbaumarkierungen im Bereich dieses Turms."
+    "Entfernt alle Bergbaugebiete im Bereich dieses Turms."
   ],
   [
     "panel.designations.ore_filter.auto",
@@ -89,15 +89,15 @@
   ],
   [
     "panel.designations.elevation_limit.tooltip",
-    "Maximale (absolute) Abbautiefe (-∞ = keine Begrenzung.)"
+    "Maximale (absolute) Abbauhöhe (-∞ = keine Begrenzung.)"
   ],
   [
     "panel.designations.ore_purity.label",
-    "Erzreinheit"
+    "Erzgehalt"
   ],
   [
     "panel.designations.ore_purity.tooltip",
-    "Wie streng der Scan nach Erzqualität filtert.\nAus: alle Felder einbeziehen, bis zur vollen Tiefe graben.\nNiedrig: sehr spärliche Felder ausschließen, dünne Erzreste am unteren Rand abschneiden.\nMittel: mäßige Qualität — Felder mit starker Deckschicht oder wenig Erz überspringen.\nHoch: nur reiche Felder mit sauberer Erzsäule.\nMax: nur nahezu reines Erz — streng bei Deckschicht, Tiefe und Erzdichte."
+    "Wie streng der Scan nach Erzgehalt filtert.\nAus: alle Felder einbeziehen, bis zur vollen Tiefe graben.\nNiedrig: sehr spärliche Felder ausschließen, dünne Erzreste am unteren Rand abschneiden.\nMittel: mäßiger Gehalt — Felder mit starker Deckschicht oder wenig Erz überspringen.\nHoch: nur reiche Felder mit sauberer Erzsäule.\nMax: nur nahezu reines Erz — streng bei Deckschicht, Tiefe und Erzdichte."
   ],
   [
     "panel.designations.corridor_clearance.label",
@@ -141,7 +141,7 @@
   ],
   [
     "panel.farming.description",
-    "Automatisiert die Vorbereitung und endgültige Auffüllung flacher Nivellierungsmarkierungen, damit ihre oberste Schicht bewirtschaftbar wird."
+    "Automatisiert die Vorbereitung und endgültige Auffüllung flacher Planierungsgebiete, damit ihre oberste Schicht fruchtbar wird."
   ],
   [
     "panel.farming.automation_toggle.label",
@@ -149,7 +149,7 @@
   ],
   [
     "panel.farming.automation_toggle.tooltip",
-    "Bereitet flache Nivellierungsmarkierungen für Felder vor, indem ungeeignetes Oberflächenmaterial entfernt und anschließend die endgültigen Auffüllaufträge wiederhergestellt werden."
+    "Bereitet flache Planierungsgebiete für Felder vor, indem ungeeignetes Oberflächenmaterial entfernt und anschließend die endgültigen Auffüllgebiete wiederhergestellt werden."
   ],
   [
     "panel.ore.title",
@@ -157,7 +157,7 @@
   ],
   [
     "panel.ore.description",
-    "Erzressourcen innerhalb der aktuellen Abbaumarkierungen dieses Turms. (Berücksichtigt keine möglichen Erdrutsche.)"
+    "Erzressourcen innerhalb der aktuellen Bergbaugebiete dieses Turms. (Berücksichtigt keine möglichen Erdrutsche.)"
   ],
   [
     "panel.ore.prompt_scan",
@@ -173,7 +173,7 @@
   ],
   [
     "panel.ore.no_minable_designations",
-    "Keine abbaubaren Markierungen gefunden."
+    "Keine abbaubaren Gebiete gefunden."
   ],
   [
     "panel.ore.priority_selected_tooltip",
@@ -185,103 +185,103 @@
   ],
   [
     "farming.no_tower",
-    "[ATD Landwirtschaft] Kein Turm ausgewählt."
+    "[ATD Feldvorbereitung] Kein Turm ausgewählt."
   ],
   [
     "farming.designation_manager_unavailable",
-    "[ATD Landwirtschaft] Geländemarkierungsverwaltung ist nicht verfügbar."
+    "[ATD Feldvorbereitung] Gebietsverwaltung ist nicht verfügbar."
   ],
   [
     "farming.leveling_proto_unavailable",
-    "[ATD Landwirtschaft] Nivellierungsprototyp ist nicht verfügbar."
+    "[ATD Feldvorbereitung] Planierungsprototyp ist nicht verfügbar."
   ],
   [
     "farming.no_stable_entity_id",
-    "[ATD Landwirtschaft] Der ausgewählte Turm hat keine stabile Entitäts-ID."
+    "[ATD Feldvorbereitung] Der ausgewählte Turm hat keine stabile Entitäts-ID."
   ],
   [
     "farming.filling_waiting_all_tracked_ready",
-    "[ATD Landwirtschaft] Auffüllung wartet: Alle verfolgten Turmmarkierungen müssen ReadyForFilling oder Done sein, bevor die Ablageregeln des Turms geändert werden können."
+    "[ATD Feldvorbereitung] Auffüllung wartet: Alle verfolgten Turmgebiete müssen ReadyForFilling oder Done sein, bevor der Verkippungsfilter des Turms geändert werden kann."
   ],
   [
     "farming.automation_enabled",
-    "[ATD Landwirtschaft] Landwirtschaftsautomatik aktiviert."
+    "[ATD Feldvorbereitung] Feldvorbereitungsautomatik aktiviert."
   ],
   [
     "farming.stage3_started",
-    "[ATD Landwirtschaft] Vorbereitungsphase 3 gestartet."
+    "[ATD Feldvorbereitung] Vorbereitungsphase 3 gestartet."
   ],
   [
     "farming.already_disabled",
-    "[ATD Landwirtschaft] Landwirtschaftsautomatik ist für diesen Turm bereits deaktiviert."
+    "[ATD Feldvorbereitung] Feldvorbereitungsautomatik ist für diesen Turm bereits deaktiviert."
   ],
   [
     "farming.restore_attempted",
-    "[ATD Landwirtschaft] Wiederherstellung versucht: wiederhergestellt={0}, fehlgeschlagen={1}."
+    "[ATD Feldvorbereitung] Wiederherstellung versucht: wiederhergestellt={0}, fehlgeschlagen={1}."
   ],
   [
     "farming.restored_origins",
-    "[ATD Landwirtschaft] {0} Phase-3-Ausgangspunkt(e) für diesen Turm wiederhergestellt."
+    "[ATD Feldvorbereitung] {0} Phase-3-Ausgangspunkt(e) für diesen Turm wiederhergestellt."
   ],
   [
     "farming.no_stage3_session",
-    "[ATD Landwirtschaft] Für diesen Turm existiert keine Vorbereitungsphase 3. Führe zuerst die Vorbereitung aus."
+    "[ATD Feldvorbereitung] Für diesen Turm existiert keine Vorbereitungsphase 3. Führe zuerst die Vorbereitung aus."
   ],
   [
     "farming.session_already_active",
-    "[ATD Landwirtschaft] Für diesen Turm ist bereits eine Vorbereitungs-/Auffüllsitzung aktiv."
+    "[ATD Feldvorbereitung] Für diesen Turm ist bereits eine Vorbereitungs-/Auffüllsitzung aktiv."
   ],
   [
     "farming.filling_waiting_preparation",
-    "[ATD Landwirtschaft] Auffüllung wartet: Eine oder mehrere Turmmarkierungen benötigen noch Nivellierung oder Vorbereitung."
+    "[ATD Feldvorbereitung] Auffüllung wartet: Ein oder mehrere Turmgebiete benötigen noch Planierung oder Vorbereitung."
   ],
   [
     "farming.stage4_designation_manager_unavailable",
-    "[ATD Landwirtschaft] Phase 4 blockiert: Markierungsverwaltung nicht verfügbar."
+    "[ATD Feldvorbereitung] Phase 4 blockiert: Gebietsverwaltung nicht verfügbar."
   ],
   [
     "farming.stage4_leveling_proto_unavailable",
-    "[ATD Landwirtschaft] Phase 4 blockiert: Nivellierungsprototyp nicht verfügbar."
+    "[ATD Feldvorbereitung] Phase 4 blockiert: Planierungsprototyp nicht verfügbar."
   ],
   [
     "farming.no_origins_ready",
-    "[ATD Landwirtschaft] Keine Ausgangspunkte sind bereit für Auffüllung/Wiederherstellung. Führe zuerst die Vorbereitung aus oder warte, bis Nivellierung/Vorbereitung abgeschlossen ist."
+    "[ATD Feldvorbereitung] Keine Ausgangspunkte sind bereit für Auffüllung/Wiederherstellung. Führe zuerst die Vorbereitung aus oder warte, bis Planierung/Vorbereitung abgeschlossen ist."
   ],
   [
     "farming.stage4_waiting_vehicles",
-    "[ATD Landwirtschaft] Auffüllphase 4 gestartet: wartet kurz, bis {0} Fahrzeug(e) den Auffüllbereich verlassen haben, bevor Auffüllmarkierungen bestätigt werden."
+    "[ATD Feldvorbereitung] Auffüllphase 4 gestartet: wartet kurz, bis {0} Fahrzeug(e) den Auffüllbereich verlassen haben, bevor Auffüllgebiete bestätigt werden."
   ],
   [
     "farming.stage4_failed_restore",
-    "[ATD Landwirtschaft] Phase 4 blockiert: {0} bereite(n) Ausgangspunkt(e) konnten nicht wiederhergestellt werden."
+    "[ATD Feldvorbereitung] Phase 4 blockiert: {0} bereite(n) Ausgangspunkt(e) konnten nicht wiederhergestellt werden."
   ],
   [
     "farming.stage4_no_fill_origins",
-    "[ATD Landwirtschaft] Phase 4 blockiert: Es konnten keine Auffüll-Ausgangspunkte aktiviert werden."
+    "[ATD Feldvorbereitung] Phase 4 blockiert: Es konnten keine Auffüll-Ausgangspunkte aktiviert werden."
   ],
   [
     "farming.stage4_started",
-    "[ATD Landwirtschaft] Auffüllphase 4 gestartet: aktiviert={0}, fehlgeschlagen={1}, bewirtschaftbareProdukte={2}."
+    "[ATD Feldvorbereitung] Auffüllphase 4 gestartet: aktiviert={0}, fehlgeschlagen={1}, feldgeeigneteProdukte={2}."
   ],
   [
     "farming.automation_off_period",
-    "[ATD Landwirtschaft] Landwirtschaftsautomatik: aus."
+    "[ATD Feldvorbereitung] Feldvorbereitungsautomatik: aus."
   ],
   [
     "farming.automation_on",
-    "[ATD Landwirtschaft] Landwirtschaftsautomatik: ein"
+    "[ATD Feldvorbereitung] Feldvorbereitungsautomatik: ein"
   ],
   [
     "farming.automation_off",
-    "[ATD Landwirtschaft] Landwirtschaftsautomatik: aus"
+    "[ATD Feldvorbereitung] Feldvorbereitungsautomatik: aus"
   ],
   [
     "farming.summary_counts",
-    "  Aktive Ausgangspunkte={0}, Analyse/Nivellierung={1}, Vorbereitung={2}, BereitZumAuffüllen={3}, Auffüllung={4}, Fertig={5}, Blockiert={6}"
+    "  Aktive Ausgangspunkte={0}, Analyse/Planierung={1}, Vorbereitung={2}, BereitZumAuffüllen={3}, Auffüllung={4}, Fertig={5}, Blockiert={6}"
   ],
   [
     "farming.tower_dump_rules_restricted",
-    "  Ablageregeln des Turms sind vorübergehend auf bewirtschaftbare Produkte beschränkt."
+    "  Verkippungsfilter des Turms ist vorübergehend auf für Felder geeignete Produkte beschränkt."
   ],
   [
     "farming.more_origins_omitted",
