@@ -29,9 +29,9 @@ is included by mistake, I intend to correct it promptly upon discovery or notice
     <Delete Files="$(ProjectDir)$(TargetFileName).old" />
   </Target>
 
-  <ItemGroup>
-    <Compile Remove="Mori\**\*.cs" />
-  </ItemGroup>
+  <PropertyGroup>
+    <DefaultItemExcludes>$(DefaultItemExcludes);external\**\*;artifacts\**\*;Mori\**\*</DefaultItemExcludes>
+  </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="BepInEx.AssemblyPublicizer.MSBuild" Version="0.4.2">

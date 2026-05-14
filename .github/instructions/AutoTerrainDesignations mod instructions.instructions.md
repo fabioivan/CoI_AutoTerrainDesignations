@@ -37,6 +37,19 @@ After having added new features or fixes, suggest that the mod's change log be u
 # Review API implementation for breaking changes and new features
 After each major update, review the mod API implementation and suggest to update instructions with any new features, changes, or fixes that may impact users or modders. This ensures that the mod's documentation remains accurate and helpful for the community.
 
+# Documentation maintenance
+- ATD now uses an audience-split documentation tree under `docs/`:
+  - `docs/player/` for player-facing usage docs
+  - `docs/api/` for public API and modder-facing integration docs
+  - `docs/dev/done/` for implemented architecture and settled behavior
+  - `docs/dev/in-progress/` for systems that exist but are expected to change soon
+  - `docs/dev/planned/` for future design notes that are not yet implemented
+- When changing user-visible behavior, modder-facing APIs, or internal architecture, update the relevant docs in the same task when practical.
+- Prefer replacing outdated planning docs with current implementation docs once a feature is shipped enough to describe concretely.
+- Keep player docs free of internal-only implementation detail unless it directly affects player behavior.
+- Keep dev docs explicit about what is implemented today versus what is expected to change soon.
+- For file-specific doc maintenance rules, also load the docs instruction file in this repo when working under `docs/`.
+
 # MaFi modding API Reference
 Reference for general queries regarding e.g. the manifest file, mod structure, and API usage. For game-specific behavior, also check the Captain of Industry Wiki and Decompiled Source sections below.
 - Captain of Industry modding documentation: https://github.com/MaFi-Games/Captain-of-industry-modding
