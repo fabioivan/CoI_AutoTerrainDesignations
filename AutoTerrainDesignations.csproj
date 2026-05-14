@@ -97,4 +97,9 @@ is included by mistake, I intend to correct it promptly upon discovery or notice
     </PackageReference>
   </ItemGroup>
 
+  <ItemGroup>
+    <Compile Include="external\CoI_AutoHelpers\src\CoI.AutoHelpers\Localization\**\*.cs"
+             Link="CoI.AutoHelpers\Localization\%(RecursiveDir)%(Filename)%(Extension)" />
+  </ItemGroup>
+
 </Project>

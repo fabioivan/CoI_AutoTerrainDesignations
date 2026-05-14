@@ -1,6 +1,6 @@
 # Roadmap
 
-This roadmap captures planned and candidate improvements for Kayser's Automatic Terrain Designations.
+Planned and candidate improvements for Kayser's Automatic Terrain Designations.
 
 ## Planned
 

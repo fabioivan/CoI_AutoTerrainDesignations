@@ -109,12 +109,47 @@ namespace AutoTerrainDesignations
 
         private static string FarmingTr(string key, string englishDefault)
         {
-            return AtdLocalization.Tr("farming." + key, englishDefault);
+            switch (key)
+            {
+                case "no_tower":                              return AtdLocalization.FarmingNoTower.TranslatedString;
+                case "designation_manager_unavailable":       return AtdLocalization.FarmingDesigMgrUnavailable.TranslatedString;
+                case "leveling_proto_unavailable":            return AtdLocalization.FarmingLevelingProtoUnavailable.TranslatedString;
+                case "no_stable_entity_id":                   return AtdLocalization.FarmingNoStableEntityId.TranslatedString;
+                case "filling_waiting_all_tracked_ready":     return AtdLocalization.FarmingFillingWaitingAllTrackedReady.TranslatedString;
+                case "automation_enabled":                    return AtdLocalization.FarmingAutomationEnabled.TranslatedString;
+                case "stage3_started":                        return AtdLocalization.FarmingStage3Started.TranslatedString;
+                case "already_disabled":                      return AtdLocalization.FarmingAlreadyDisabled.TranslatedString;
+                case "no_stage3_session":                     return AtdLocalization.FarmingNoStage3Session.TranslatedString;
+                case "session_already_active":                return AtdLocalization.FarmingSessionAlreadyActive.TranslatedString;
+                case "filling_waiting_preparation":           return AtdLocalization.FarmingFillingWaitingPreparation.TranslatedString;
+                case "stage4_designation_manager_unavailable": return AtdLocalization.FarmingStage4DesigMgrUnavailable.TranslatedString;
+                case "stage4_leveling_proto_unavailable":     return AtdLocalization.FarmingStage4LevelingProtoUnavailable.TranslatedString;
+                case "no_origins_ready":                      return AtdLocalization.FarmingNoOriginsReady.TranslatedString;
+                case "stage4_no_fill_origins":                return AtdLocalization.FarmingStage4NoFillOrigins.TranslatedString;
+                case "automation_off_period":                 return AtdLocalization.FarmingAutomationOffPeriod.TranslatedString;
+                case "automation_on":                         return AtdLocalization.FarmingAutomationOn.TranslatedString;
+                case "automation_off":                        return AtdLocalization.FarmingAutomationOff.TranslatedString;
+                case "tower_dump_rules_restricted":           return AtdLocalization.FarmingTowerDumpRulesRestricted.TranslatedString;
+                default: return englishDefault;
+            }
         }
 
         private static string FarmingTrFormat(string key, string englishDefault, params object[] args)
         {
-            return AtdLocalization.TrFormat("farming." + key, englishDefault, args);
+            string template;
+            switch (key)
+            {
+                case "restore_attempted":       template = AtdLocalization.FarmingRestoreAttemptedFmt.TranslatedString; break;
+                case "restored_origins":        template = AtdLocalization.FarmingRestoredOriginsFmt.TranslatedString; break;
+                case "stage4_waiting_vehicles": template = AtdLocalization.FarmingStage4WaitingVehiclesFmt.TranslatedString; break;
+                case "stage4_failed_restore":   template = AtdLocalization.FarmingStage4FailedRestoreFmt.TranslatedString; break;
+                case "stage4_started":          template = AtdLocalization.FarmingStage4StartedFmt.TranslatedString; break;
+                case "summary_counts":          template = AtdLocalization.FarmingSummaryCountsFmt.TranslatedString; break;
+                case "more_origins_omitted":    template = AtdLocalization.FarmingMoreOriginsOmittedFmt.TranslatedString; break;
+                default: template = englishDefault; break;
+            }
+            try { return string.Format(template, args); }
+            catch { return template; }
         }
 
         private static void ClearFarmingRuntimeState()

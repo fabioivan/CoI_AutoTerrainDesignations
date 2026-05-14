@@ -40,9 +40,7 @@ namespace AutoTerrainDesignations
                     entityProp.GetValue(inspector) as IAreaManagingTower);
                 var contentCol = new Column(2.pt());
                 var automationToggle = new Toggle(standalone: true)
-                    .Label(new LocStrFormatted(AtdLocalization.Tr(
-                        "panel.farming.automation_toggle.label",
-                        "Farmland Preparation Automation")))
+                    .Label(AtdLocalization.FarmingToggleLabel)
                     .ObserveValue(() =>
                     {
                         var tower = entityProp.GetValue(inspector) as IAreaManagingTower;
@@ -53,9 +51,7 @@ namespace AutoTerrainDesignations
                         var tower = entityProp.GetValue(inspector) as IAreaManagingTower;
                         AutoDepthDesignation.SetFarmingAutomationEnabledForTower(tower, isOn);
                     })
-                    .Tooltip(new LocStrFormatted(AtdLocalization.Tr(
-                        "panel.farming.automation_toggle.tooltip",
-                        "Prepare flat level designations for farmland by clearing unsuitable top material, then restoring the final fill orders.")));
+                    .Tooltip(AtdLocalization.FarmingToggleTip);
 
                 contentCol.Add(automationToggle);
 
@@ -69,12 +65,8 @@ namespace AutoTerrainDesignations
 
                 var panel = new PanelWithHeader()
                     .Title(
-                        new LocStrFormatted(AtdLocalization.Tr(
-                            "panel.farming.title",
-                            "Farmland Preparation")),
-                        new LocStrFormatted(AtdLocalization.Tt(
-                            "panel.farming.description",
-                            "Automates the preparation and final filling of flat level designations so their top layer becomes farmable.")));
+                        AtdLocalization.FarmingTitle,
+                        AtdLocalization.Tip(AtdLocalization.FarmingDescription));
                 panel.Collapsed(false);
 
                 panel.BodyAdd(contentCol);

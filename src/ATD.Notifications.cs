@@ -45,33 +45,23 @@ namespace AutoTerrainDesignations
         {
             RegisterWarning(
                 registrator,
-                AtdLocalization.Tr(
-                    "notification.ramp_access_failed",
-                    "[ATD] {entity} could not start an access ramp"),
+                AtdLocalization.NotifRampFailed.TranslatedString,
                 RampAccessFailedId);
             RegisterWarning(
                 registrator,
-                AtdLocalization.Tr(
-                    "notification.ramp_access_truncated",
-                    "[ATD] {entity} could not fit a full access ramp"),
+                AtdLocalization.NotifRampTruncated.TranslatedString,
                 RampAccessTruncatedId);
             RegisterWarning(
                 registrator,
-                AtdLocalization.Tr(
-                    "notification.ramp_access_not_accessible",
-                    "[ATD] {entity} could not path to the ramp"),
+                AtdLocalization.NotifRampNotAccessible.TranslatedString,
                 RampAccessNotAccessibleId);
             RegisterSuccess(
                 registrator,
-                AtdLocalization.Tr(
-                    "notification.farming_complete",
-                    "[ATD] {entity} farming preparation and filling complete"),
+                AtdLocalization.NotifFarmingComplete.TranslatedString,
                 FarmingCompleteId);
             RegisterSuccess(
                 registrator,
-                AtdLocalization.Tr(
-                    "notification.excavator_completed",
-                    "[ATD] {entity} completed an excavator"),
+                AtdLocalization.NotifExcavatorCompleted.TranslatedString,
                 ExcavatorCompletedId,
                 "Assets/Unity/UserInterface/Toolbar/Mining.svg");
         }

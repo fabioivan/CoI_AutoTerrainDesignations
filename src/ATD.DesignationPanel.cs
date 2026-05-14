@@ -151,9 +151,7 @@ namespace AutoTerrainDesignations
                             if (tower == null) return;
                             AutoDepthDesignation.SetSelectedOre(tower, null);
                         },
-                        new LocStrFormatted(AtdLocalization.Tr(
-                            "panel.designations.ore_filter.auto",
-                            "Auto (useful -> debris -> dirt)")),
+                        AtdLocalization.DesigOreFilterAuto,
                         compact: true,
                         primaryButtonIfNoProtoSet: false
                     );
@@ -175,9 +173,7 @@ namespace AutoTerrainDesignations
             var digBtn = new ButtonIconText(
                 Button.Primary,
                 "Assets/Unity/UserInterface/EntityIcons/Designation.png",
-                new LocStrFormatted(AtdLocalization.Tr(
-                    "panel.designations.create_button",
-                    "Create Designations")))
+                AtdLocalization.DesigCreateBtn)
                 .OnClick((Action)delegate
                 {
                     try
@@ -189,9 +185,7 @@ namespace AutoTerrainDesignations
                     }
                     catch (Exception ex) { Debug.Log($"[ATD] Dig button click EXCEPTION: {ex}"); }
                 });
-            digBtn.Tooltip(new LocStrFormatted(AtdLocalization.Tt(
-                "panel.designations.create_tooltip",
-                "Scan and place mining designations in this tower's area.")));
+            digBtn.Tooltip(AtdLocalization.Tip(AtdLocalization.DesigCreateTip));
             digBtn.Icon.Size(Px.Auto, 24.px());
 
             var debrisBtn = new ButtonIcon(
@@ -209,9 +203,7 @@ namespace AutoTerrainDesignations
                     }
                     catch (Exception ex) { Debug.Log($"[ATD] Debris button click EXCEPTION: {ex}"); }
                 })
-                .Tooltip(new LocStrFormatted(AtdLocalization.Tt(
-                    "panel.designations.debris_tooltip",
-                    "Designate all debris in the area for mining/removal. Overrides any forestry designations.")));
+                .Tooltip(AtdLocalization.Tip(AtdLocalization.DesigDebrisTip));
 
             // --- Clear button ---
             var clearBtn = new ButtonIcon(
@@ -229,9 +221,7 @@ namespace AutoTerrainDesignations
                     }
                     catch (Exception ex) { Debug.Log($"[ATD] Clear button click EXCEPTION: {ex}"); }
                 })
-                .Tooltip(new LocStrFormatted(AtdLocalization.Tt(
-                    "panel.designations.clear_tooltip",
-                    "Clear all mining designations in this tower's area.")));
+                .Tooltip(AtdLocalization.Tip(AtdLocalization.DesigClearTip));
 
             digBtn.MarginTopBottom(1.pt());
             debrisBtn.MarginTopBottom(1.pt()).AlignSelfEnd();
@@ -246,12 +236,8 @@ namespace AutoTerrainDesignations
             contentRow.Add(debrisBtn);
 
             var panel = new PanelWithHeader()
-                .Title(new LocStrFormatted(AtdLocalization.Tr(
-                           "panel.designations.title",
-                           "Terrain Designations")),
-                       new LocStrFormatted(AtdLocalization.Tt(
-                           "panel.designations.description",
-                           "Create automatic terrain designations for this tower.")));
+                .Title(AtdLocalization.DesigTitle,
+                       AtdLocalization.Tip(AtdLocalization.DesigDescription));
             panel.Collapsed(AutoTerrainDesignationsMod.TerrainDesignationsPanelCollapsed);
             panel.BodyAdd(contentRow);
 
@@ -262,10 +248,8 @@ namespace AutoTerrainDesignations
             var rampWidthDisplay = new Mafi.Unity.Ui.Library.Display(new LocStrFormatted(RampWidthText(initRamp)))
                 .MinDigits(3).AlignSelfStretch().MarginTopBottom(2.px());
             panel.BodyAdd(BuildStepRow(
-                new LocStrFormatted(AtdLocalization.Tr("panel.designations.ramp_width.label", "Ramp width")),
-                new LocStrFormatted(AtdLocalization.Tr(
-                    "panel.designations.ramp_width.tooltip",
-                    "Width of generated access ramps (0 = disable ramp).")),
+                AtdLocalization.DesigRampWidthLabel,
+                AtdLocalization.DesigRampWidthTip,
                 rampWidthDisplay,
                 (Action)delegate
                 {
@@ -287,10 +271,8 @@ namespace AutoTerrainDesignations
             var maxLayersDisplay = new Mafi.Unity.Ui.Library.Display(new LocStrFormatted(MaxLayersText(initLayers)))
                 .MinDigits(3).AlignSelfStretch().MarginTopBottom(2.px());
             panel.BodyAdd(BuildStepRow(
-                new LocStrFormatted(AtdLocalization.Tr("panel.designations.max_layers.label", "Max layers to excavate")),
-                new LocStrFormatted(AtdLocalization.Tr(
-                    "panel.designations.max_layers.tooltip",
-                    "Maximum layers to excavate from the surface. (\u221e = no limit.)")),
+                AtdLocalization.DesigMaxLayersLabel,
+                AtdLocalization.DesigMaxLayersTip,
                 maxLayersDisplay,
                 (Action)delegate
                 {
@@ -316,10 +298,8 @@ namespace AutoTerrainDesignations
             var minElevDisplay = new Mafi.Unity.Ui.Library.Display(new LocStrFormatted(MinElevText(initElev)))
                 .MinDigits(3).AlignSelfStretch().MarginTopBottom(2.px());
             panel.BodyAdd(BuildStepRow(
-                new LocStrFormatted(AtdLocalization.Tr("panel.designations.elevation_limit.label", "Elevation limit")),
-                new LocStrFormatted(AtdLocalization.Tr(
-                    "panel.designations.elevation_limit.tooltip",
-                    "Maximum (absolute) excavation depth (-\u221e = no limit.)")),
+                AtdLocalization.DesigElevLimitLabel,
+                AtdLocalization.DesigElevLimitTip,
                 minElevDisplay,
                 (Action)delegate
                 {
@@ -347,16 +327,8 @@ namespace AutoTerrainDesignations
             var orePurityDisplay = new Mafi.Unity.Ui.Library.Display(new LocStrFormatted(OrePurityLevelText(initPurity)))
                 .MinDigits(3).AlignSelfStretch().MarginTopBottom(2.px());
             panel.BodyAdd(BuildStepRow(
-                new LocStrFormatted(AtdLocalization.Tr("panel.designations.ore_purity.label", "Ore purity")),
-                new LocStrFormatted(
-                    AtdLocalization.Tr(
-                        "panel.designations.ore_purity.tooltip",
-                        "How strictly the scan filters for ore quality.\n" +
-                        "Off: include all tiles, dig to full depth.\n" +
-                        "Low: exclude very sparse tiles, trim thin trailing ore at the bottom.\n" +
-                        "Med: moderate quality — skip tiles with heavy overburden or little ore.\n" +
-                        "High: only rich tiles with a clean ore column.\n" +
-                        "Max: near-pure ore only — strict on overburden, depth and ore density.")),
+                AtdLocalization.DesigOrePurityLabel,
+                AtdLocalization.DesigOrePurityTip,
                 orePurityDisplay,
                 (Action)delegate
                 {
@@ -378,14 +350,8 @@ namespace AutoTerrainDesignations
             var clearanceDisplay = new Mafi.Unity.Ui.Library.Display(new LocStrFormatted(ClearanceLevelText(initClearance)))
                 .MinDigits(3).AlignSelfStretch().MarginTopBottom(2.px());
             panel.BodyAdd(BuildStepRow(
-                new LocStrFormatted(AtdLocalization.Tr("panel.designations.corridor_clearance.label", "Corridor clearance")),
-                new LocStrFormatted(
-                    AtdLocalization.Tr(
-                        "panel.designations.corridor_clearance.tooltip",
-                        "Minimum corridor width for connecting ore regions and enforcing passability.\n" +
-                        "0 = disabled (regions left separate, no corridors or hole-filling).\n" +
-                        "1 = 1-tile corridors (small and medium vehicles).\n" +
-                        "2 = 2-tile corridors (mega vehicles).\n")),
+                AtdLocalization.DesigCorridorClearanceLabel,
+                AtdLocalization.DesigCorridorClearanceTip,
                 clearanceDisplay,
                 (Action)delegate
                 {
@@ -404,12 +370,8 @@ namespace AutoTerrainDesignations
             if (orePicker != null)
             {
                 var oreRow = new Row().MarginTop(1.pt());
-                oreRow.Add(new Label(new LocStrFormatted(AtdLocalization.Tr(
-                        "panel.designations.scanning_filter.label",
-                        "Scanning filter:")))
-                    .Tooltip(new LocStrFormatted(AtdLocalization.Tr(
-                        "panel.designations.scanning_filter.tooltip",
-                        "Force the scan to target a specific product. None = useful products first, then debris, then dirt."))));
+                oreRow.Add(new Label(AtdLocalization.DesigScanningFilterLabel)
+                    .Tooltip(AtdLocalization.DesigScanningFilterTip));
                 oreRow.Add(new UiComponent().FlexGrow(1f));
                 oreRow.Add(orePicker);
                 panel.BodyAdd(oreRow);
@@ -428,18 +390,12 @@ namespace AutoTerrainDesignations
             b.RampWarningIcon.SetVisible(hasWarning);
             if (hasWarning)
             {
-                string msg = outcome == AutoDepthDesignation.RampPlacementOutcome.Failed
-                    ? AtdLocalization.Tr(
-                        "panel.designations.ramp_warning.failed",
-                        "Ramp generation failed \u2014 no valid path found.")
+                LocStr warnStr = outcome == AutoDepthDesignation.RampPlacementOutcome.Failed
+                    ? AtdLocalization.DesigRampWarnFailed
                     : outcome == AutoDepthDesignation.RampPlacementOutcome.Truncated
-                        ? AtdLocalization.Tr(
-                            "panel.designations.ramp_warning.truncated",
-                            "Ramp placed but did not reach the surface \u2014 excavators may not be able to excavate.")
-                        : AtdLocalization.Tr(
-                            "panel.designations.ramp_warning.not_accessible",
-                            "Couldn't find a valid path from the tower to the generated ramp. Check for access problems.");
-                b.RampWarningIcon.Tooltip(new LocStrFormatted(msg));
+                        ? AtdLocalization.DesigRampWarnTruncated
+                        : AtdLocalization.DesigRampWarnNotAccessible;
+                b.RampWarningIcon.Tooltip(warnStr);
             }
         }
 
@@ -484,11 +440,11 @@ namespace AutoTerrainDesignations
         {
             switch (value)
             {
-                case 0: return AtdLocalization.Tr("common.level.off", "Off");
-                case 1: return AtdLocalization.Tr("common.level.low", "Low");
-                case 2: return AtdLocalization.Tr("common.level.med", "Med");
-                case 3: return AtdLocalization.Tr("common.level.high", "High");
-                case 4: return AtdLocalization.Tr("common.level.max", "Max");
+                case 0: return AtdLocalization.LevelOff.TranslatedString;
+                case 1: return AtdLocalization.LevelLow.TranslatedString;
+                case 2: return AtdLocalization.LevelMed.TranslatedString;
+                case 3: return AtdLocalization.LevelHigh.TranslatedString;
+                case 4: return AtdLocalization.LevelMax.TranslatedString;
                 default: return value.ToString();
             }
         }
@@ -497,7 +453,7 @@ namespace AutoTerrainDesignations
         {
             switch (value)
             {
-                case 0: return AtdLocalization.Tr("common.level.off", "Off");
+                case 0: return AtdLocalization.LevelOff.TranslatedString;
                 case 1: return "1";
                 case 2: return "2";
                 default: return value.ToString();

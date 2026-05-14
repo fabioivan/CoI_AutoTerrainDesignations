@@ -7,6 +7,7 @@
 // intended to contain only original mod code/configuration; if MaFi Games material
 // is included by mistake, I intend to correct it promptly upon discovery or notice.
 using System;
+using System.IO;
 using HarmonyLib;
 using Mafi;
 using Mafi.Collections;
@@ -26,9 +27,11 @@ using Mafi.Core.Vehicles.Jobs;
 using Mafi.Core.World;
 using Mafi.Unity.InputControl;
 using Mafi.Unity.Terrain.Designation;
+using Mafi.Localization;
 using Mafi.Unity.UiStatic;
 using Mafi.Unity.UiStatic.Cursors;
 using UnityEngine;
+using CoI.AutoHelpers.Localization;
 
 namespace AutoTerrainDesignations;
 
@@ -72,7 +75,6 @@ public sealed class AutoTerrainDesignationsMod : IMod, IDisposable
         AutoDepthDesignation.ApplyCornerPatches(m_harmony);
         AutoDepthDesignation.ApplyVehicleDepotPatches(m_harmony);
 
-        AtdLocalization.Initialize(Manifest.RootDirectoryPath);
         AtdNotifications.RegisterPrototypes(registrator);
     }
 
@@ -202,6 +204,8 @@ public sealed class AutoTerrainDesignationsMod : IMod, IDisposable
             ConsoleLogger.Enable();
             AutoTerrainDesignationsTicker.DestroyActive();
 
+            RegisterAutoHelpersLocalizationLateApply(resolver);
+
 #if DEBUG
             // Auto-enable Mafi console mirroring in Debug builds so logs show up in-game
             // without requiring a manual `also_log_to_console` command each launch.
@@ -211,9 +215,9 @@ public sealed class AutoTerrainDesignationsMod : IMod, IDisposable
             {
                 bool enabled = consoleCommands.ExecuteOrSchedule("also_log_to_console true");
                 if (enabled)
-                    Debug.Log("[ATD] Debug build: auto-executed also_log_to_console.");
+                    Log.Info("[ATD] Debug build: auto-executed also_log_to_console.");
                 else
-                    Debug.LogWarning("[ATD] Debug build: failed to auto-execute also_log_to_console.");
+                    Log.Warning("[ATD] Debug build: failed to auto-execute also_log_to_console.");
             });
 #endif
 
@@ -243,11 +247,11 @@ public sealed class AutoTerrainDesignationsMod : IMod, IDisposable
             TerrainDesignationsRenderer? desigRenderer = null;
             CursorManager? cursorManager = null;
             try { terrainCursor = resolver.Resolve<TerrainCursor>(); }
-            catch (Exception ex2) { Debug.LogWarning("[ATD] TerrainCursor not available: " + ex2.Message); }
+            catch (Exception ex2) { Log.Warning("[ATD] TerrainCursor not available: " + ex2.Message); }
             try { desigRenderer = resolver.Resolve<TerrainDesignationsRenderer>(); }
-            catch (Exception ex3) { Debug.LogWarning("[ATD] TerrainDesignationsRenderer not available: " + ex3.Message); }
+            catch (Exception ex3) { Log.Warning("[ATD] TerrainDesignationsRenderer not available: " + ex3.Message); }
             try { cursorManager = resolver.Resolve<CursorManager>(); }
-            catch (Exception ex4) { Debug.LogWarning("[ATD] CursorManager not available: " + ex4.Message); }
+            catch (Exception ex4) { Log.Warning("[ATD] CursorManager not available: " + ex4.Message); }
             AutoDepthDesignation.InitializeCornerMode(terrainCursor, desigRenderer, cursorManager);
         }
         catch (Exception ex)
@@ -255,7 +259,7 @@ public sealed class AutoTerrainDesignationsMod : IMod, IDisposable
             unsubscribeWorldEvents();
             AutoTerrainDesignationsTicker.DestroyActive();
             AutoDepthDesignation.ResetWorldRuntimeState();
-            Debug.LogWarning("[ATD] AutoTerrainDesignations init: " + ex.Message);
+            Log.Exception(ex, "[ATD] AutoTerrainDesignations init");
         }
     }
 
@@ -299,6 +303,58 @@ public sealed class AutoTerrainDesignationsMod : IMod, IDisposable
             try { m_saveManager.OnSaveDone -= onSaveDone; }
             catch { }
             m_saveManager = null;
+        }
+    }
+
+    private void RegisterAutoHelpersLocalizationLateApply(DependencyResolver resolver)
+    {
+        IGameLoopEvents gameLoopEvents = resolver.Resolve<IGameLoopEvents>();
+        gameLoopEvents.RegisterRendererInitState(this, () =>
+        {
+            Log.Info("[ATD] Localization: late apply at renderer init state.");
+            ApplyAutoHelpersLocalization();
+        });
+    }
+
+    private void ApplyAutoHelpersLocalization()
+    {
+        string translationsDirectory = Path.Combine(Manifest.RootDirectoryPath, "translations");
+        Log.Info($"[ATD] Localization: probing directory '{translationsDirectory}'.");
+
+        if (!Directory.Exists(translationsDirectory))
+        {
+            Log.Warning("[ATD] Localization: translations directory does not exist; skipping.");
+            return;
+        }
+
+        string[] jsonFiles = Directory.GetFiles(translationsDirectory, "*.json", SearchOption.TopDirectoryOnly);
+        Array.Sort(jsonFiles, StringComparer.OrdinalIgnoreCase);
+        if (jsonFiles.Length == 0)
+            Log.Warning("[ATD] Localization: no translation JSON files found.");
+        else
+            Log.Info($"[ATD] Localization: discovered {jsonFiles.Length} file(s): {string.Join(", ", jsonFiles)}");
+
+        string currentCulture;
+        try { currentCulture = LocalizationManager.CurrentLangInfo.CultureInfoId; }
+        catch { currentCulture = "<unavailable>"; }
+        Log.Info($"[ATD] Localization: current game culture before apply = '{currentCulture}'.");
+
+        ModTranslationsApplyResult result = new ModTranslations().Apply(new ModTranslationsApplyOptions(
+            translationsDirectory,
+            typeof(AutoTerrainDesignationsMod).Assembly,
+            Array.Empty<string>()));
+
+        Log.Info(
+            $"[ATD] Localization: applied locale='{result.AppliedLocaleCode}', upserted={result.UpsertedEntryCount}, scannedFields={result.ScannedFieldCount}, reboundFields={result.ReboundFieldCount}, readonlySkipped={result.SkippedReadonlyFieldCount}, missingTranslationSkipped={result.SkippedMissingTranslationFieldCount}, failedWrites={result.FailedFieldCount}, diagnostics={result.Diagnostics.Count}.");
+
+        foreach (TranslationDiagnostic diagnostic in result.Diagnostics)
+        {
+            string itemInfo = diagnostic.ItemIndex.HasValue ? $", itemIndex={diagnostic.ItemIndex.Value}" : string.Empty;
+            string message = $"[ATD] Localization diagnostic [{diagnostic.Severity}] source='{diagnostic.SourcePath}'{itemInfo}: {diagnostic.Message}";
+            if (diagnostic.Severity == TranslationDiagnosticSeverity.Info)
+                Log.Info(message);
+            else
+                Log.Warning(message);
         }
     }
 
