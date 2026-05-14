@@ -1,3 +1,6 @@
+v0.4.0c | 2026-05-15
+* Improved ramp generation resilience: when the primary (dominant-axis) direction is blocked, the ramp now falls back to any other direction pointing toward the tower, tried in order of alignment angle
+
 v0.4.0b | 2026-05-14
 * Fixed: preparation-phase access ramp was not created for the last remaining preparation tile when all neighbouring tiles had already finished, because done origins were still blocking ramp entry positions
 

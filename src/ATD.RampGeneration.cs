@@ -397,19 +397,15 @@ namespace AutoTerrainDesignations
 
             int oreMidX = oreSumX / rampWidth;
             int oreMidY = oreSumY / rampWidth;
-            int dxToTower = towerPos.X - oreMidX;
-            int dyToTower = towerPos.Y - oreMidY;
             int directionToTower = (towerPos.X - oreMidX) * direction.X + (towerPos.Y - oreMidY) * direction.Y;
             if (directionToTower <= 0)
             {
                 return;
             }
 
-            bool isDominantX = Math.Abs(dxToTower) >= Math.Abs(dyToTower);
-            if ((isDominantX && direction.Y != 0) || (!isDominantX && direction.X != 0))
-            {
-                return;
-            }
+            // No dominant-axis filter here: any direction with a positive dot product toward the
+            // tower is allowed. ScoreRampCandidate already ranks by alignment (alignmentScore term),
+            // so the best-aligned direction is tried first and secondary directions act as fallbacks.
 
             for (int lane = 0; lane < rampWidth; lane++)
             {
