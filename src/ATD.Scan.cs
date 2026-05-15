@@ -271,19 +271,7 @@ namespace AutoTerrainDesignations
             {
                 LogDebug("Creating access ramp...");
                 RampPlacementOutcome rampOutcome = CreateAccessRamp(tower, maxOreDepths, cornerHeights, terrMgr, towerSettings.RampWidth, out Tile2i rampTopTile);
-                if (rampOutcome == RampPlacementOutcome.Failed)
-                {
-                    SetTowerLastRampOutcome(tower, RampPlacementOutcome.Failed);
-                }
-                else if (rampOutcome == RampPlacementOutcome.Truncated)
-                {
-                    SetTowerLastRampOutcome(tower, RampPlacementOutcome.Truncated);
-                }
-                else if (rampOutcome == RampPlacementOutcome.Crested)
-                {
-                    bool accessible = IsRampMouthReachableFromTower(tower, rampTopTile, bbMin, bbMax);
-                    SetTowerLastRampOutcome(tower, accessible ? RampPlacementOutcome.Crested : RampPlacementOutcome.NotAccessible);
-                }
+                SetTowerLastRampOutcome(tower, rampOutcome);
             }
             else
             {
@@ -310,6 +298,11 @@ namespace AutoTerrainDesignations
             new RelTile2i(0, 1),
             new RelTile2i(0, -1)
         };
+
+        private static bool IsRampMouthReachableFromTower(IAreaManagingTower tower, Tile2i rampMouthOrigin)
+        {
+            return IsRampMouthReachableFromTower(tower, rampMouthOrigin, tower.Area.BoundingBoxMin, tower.Area.BoundingBoxMax);
+        }
 
         private static bool IsRampMouthReachableFromTower(
             IAreaManagingTower tower,

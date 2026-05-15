@@ -1,3 +1,10 @@
+v0.4.0d | 2026-05-15
+* Ramp generation: removed the half-space direction filter so all four cardinal directions are evaluated as ramp candidates; scoring already ranks by alignment toward the tower, so preferred directions are still tried first while directions away from the tower serve as fallbacks when the preferred corridor is blocked by a building, debris, or void
+* Ramp placement now checks vehicle accessibility before committing a candidate; accessible candidates are preferred; if no accessible candidate exists the best available is placed and reported as not accessible
+* Farming access ramp failures now show a warning notification on the tower, matching mining ramp notification behavior; the notification is cleared when all farming designations become accessible
+* Fixed: German translation of ore mining priority tooltip
+* Farming session status messages (diagnostic output from commands such as **atd_farming_dump_all_towers** and the status line returned by farming automation commands) are no longer localized and always display in English; panel labels and tooltips in the **Farmland Preparation** inspector are unaffected
+
 v0.4.0c | 2026-05-15
 * Improved ramp generation resilience: when the primary (dominant-axis) direction is blocked, the ramp now falls back to any other direction pointing toward the tower, tried in order of alignment angle
 

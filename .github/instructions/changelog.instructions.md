@@ -5,14 +5,15 @@ applyTo: "changelog.txt"
 
 # Change Log Maintenance Rules
 
+The changelog.txt in the root is a user-facing change log that complies with the Mafi requirements for the CoI mod portal, but is maintained in markdown format for ease of editing and pasting into other contexts like Discord announcements. When making changes to the mod that affect user-facing behavior, features, or fixes, the change log must be updated with a clear description of the change, following the formatting and content rules below.
+
 ## File location
 `changelog.txt` in the workspace root (plain text, required by the Mafi mod portal).
 
-## Format
+## Format rules
 - Each release starts with `v<semver> | <YYYY-MM-DD>` (e.g. `v0.2.6 | 2026-05-08`)
 - Top-level bullet entries use `*`.
 - Sub-bullets use 4 spaces followed by `-`.
-- No markdown headings (`#`).
 - Unreleased / in-progress work goes in the **first entry** at the top of the file with the next version number and today's date. Do not use an "Unreleased" or "WIP" label.
 
 ## Content rules

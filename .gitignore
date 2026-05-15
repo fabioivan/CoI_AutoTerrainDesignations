@@ -17,13 +17,12 @@ ATDsettings.json
 .vs/
 .vscode/*
 !.vscode/tasks.json
-Backlog.md
 *.code-workspace
-ui-icons.txt
 *.user
 *.suo
 *.userosscache
 *.sln.docstates
+*.lscache
 
 # OS noise
 Thumbs.db

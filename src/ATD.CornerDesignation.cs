@@ -111,7 +111,7 @@ namespace AutoTerrainDesignations
             if (cursorManager != null)
             {
                 try { s_cornerCursor = cursorManager.RegisterCursor(CursorsStyles.Add); }
-                catch (Exception ex) { Log.Warning("[ATD] Failed to register corner cursor: " + ex.Message); }
+                catch (Exception ex) { Log.Warning("Failed to register corner cursor: " + ex.Message); }
             }
         }
 
@@ -240,7 +240,7 @@ namespace AutoTerrainDesignations
             }
             s_switchSound = s_switchSoundField?.GetValue(__instance);
 
-            LogDebug($"[ATD] Designation tool activated: {typeName}");
+            LogDebug($"Designation tool activated: {typeName}");
         }
 
         // Postfix on TerrainDesignationController.Deactivate.
@@ -261,7 +261,7 @@ namespace AutoTerrainDesignations
             s_cornerModeButtonOuter   = null;
             s_cornerModeButtonInner   = null;
             s_activeCornerProto       = null;
-            LogDebug($"[ATD] Designation tool deactivated: {typeName}");
+            LogDebug($"Designation tool deactivated: {typeName}");
         }
 
         // Prefix on TerrainDesignationsRenderer.AddOrUpdatePreviewDesignation — suppresses the
@@ -359,7 +359,7 @@ namespace AutoTerrainDesignations
             if (s_activeAreaToolbox != null &&
                 s_areaToolboxButtonsField?.GetValue(s_activeAreaToolbox) is ToolboxItem[] modeButtons)
                 foreach (var b in modeButtons) b.Selected(false);
-            LogDebug("[ATD] Corner designation mode entered.");
+            LogDebug("Corner designation mode entered.");
         }
 
         private static void ExitCornerMode()
@@ -375,7 +375,7 @@ namespace AutoTerrainDesignations
             // Restore the previously active game mode button.
             if (s_activeAreaToolbox != null)
                 s_activeAreaToolbox.SetMode((AreaMode)s_currentAreaMode);
-            LogDebug("[ATD] Corner designation mode exited.");
+            LogDebug("Corner designation mode exited.");
         }
 
         /// <summary>
@@ -443,7 +443,7 @@ namespace AutoTerrainDesignations
             if (placed)
             {
                 s_protectedCornerTiles.Add(origin);
-                LogDebug($"[ATD] Placed {variant} corner at ({origin.X},{origin.Y}).");
+                LogDebug($"Placed {variant} corner at ({origin.X},{origin.Y}).");
             }
         }
 
@@ -933,7 +933,7 @@ namespace AutoTerrainDesignations
                     if (sm != null) { outerItem.Update(sm); innerItem.Update(sm); }
 
                     s_toolboxes[(int)capturedToolType] = (toolbox, outerItem, innerItem, buttonsField);
-                    LogDebug($"[ATD] K-mode buttons (outer+inner) injected into {capturedToolType} toolbox.");
+                    LogDebug($"K-mode buttons (outer+inner) injected into {capturedToolType} toolbox.");
                 }
                 else
                 {

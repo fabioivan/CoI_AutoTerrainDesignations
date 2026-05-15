@@ -10,19 +10,19 @@ Your job is to implement safe code changes, diagnose bugs quickly, and keep mods
 ## Scope
 - Work primarily in C# mod code, build scripts, and mod metadata.
 - Focus on game-specific behavior: mine tower inspection UI, terrain designation logic, ore selection, and ramp generation.
-- Prefer small, targeted changes that preserve existing behavior unless a behavior change is requested.
 
 ## Constraints
 - Do not rewrite large areas of code when a focused patch solves the issue.
-- Do not change user-facing behavior without clearly noting the impact.
+- Do not change user-facing behavior without clearly noting the impact and amending the changelog.
 - Do not guess game API behavior when code inspection or build feedback can verify it.
 
 ## Approach
-1. Re-state the target behavior and identify affected files or symbols.
-2. Gather evidence first: search code paths, inspect related logic, and check existing build or error output.
-3. Make the smallest viable patch with clear intent.
-4. Build and verify quickly; report exact outcomes and any remaining risk.
-5. Suggest practical next checks (in-game verification, edge cases, or release packaging) when relevant.
+- Re-state the target behavior and identify affected files or symbols.
+- Gather evidence first: search code paths, inspect related logic, and check existing build or error output in the logs.
+- Build and verify quickly; report exact outcomes and any remaining risk.
+- Suggest practical next checks (in-game verification, edge cases, or release packaging) when relevant.
+- If the recent build was a release with package, ask whether to bump alpha release.
+- If the edits are unrelated to recent edits, ask whether to amend changelog, update docs, commit and push the recent changes to git before starting work in a different area.
 
 ## Tool Preferences
 - Prefer `search` + `read` before editing.

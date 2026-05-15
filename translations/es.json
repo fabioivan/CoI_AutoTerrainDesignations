@@ -1,0 +1,186 @@
+[
+  [
+    "notification.ramp_access_failed",
+    "[ATD] {entity} no pudo iniciar una rampa de acceso"
+  ],
+  [
+    "notification.ramp_access_truncated",
+    "[ATD] {entity} no pudo colocar una rampa de acceso completa"
+  ],
+  [
+    "notification.ramp_access_not_accessible",
+    "[ATD] {entity} no pudo encontrar una ruta hasta la rampa"
+  ],
+  [
+    "notification.farming_complete",
+    "[ATD] {entity} completó la preparación y el rellenado de tierra de cultivo"
+  ],
+  [
+    "notification.excavator_completed",
+    "[ATD] {entity} completó una excavadora"
+  ],
+  [
+    "common.level.off",
+    "Desactivado"
+  ],
+  [
+    "common.level.low",
+    "Bajo"
+  ],
+  [
+    "common.level.med",
+    "Medio"
+  ],
+  [
+    "common.level.high",
+    "Alto"
+  ],
+  [
+    "common.level.max",
+    "Máx."
+  ],
+  [
+    "panel.designations.title",
+    "Designaciones de terreno"
+  ],
+  [
+    "panel.designations.description",
+    "Crea designaciones automáticas de terreno para esta torre."
+  ],
+  [
+    "panel.designations.create_button",
+    "Crear designaciones"
+  ],
+  [
+    "panel.designations.create_tooltip",
+    "Escanea y coloca designaciones de minería en el área de esta torre."
+  ],
+  [
+    "panel.designations.debris_tooltip",
+    "Designa todos los escombros del área para minería/eliminación. Anula cualquier designación forestal."
+  ],
+  [
+    "panel.designations.clear_tooltip",
+    "Borra todas las designaciones de minería en el área de esta torre."
+  ],
+  [
+    "panel.designations.ore_filter.auto",
+    "Auto (útiles -> escombros -> tierra)"
+  ],
+  [
+    "panel.designations.ramp_width.label",
+    "Ancho de rampa"
+  ],
+  [
+    "panel.designations.ramp_width.tooltip",
+    "Ancho de las rampas de acceso generadas (0 = desactivar rampa)."
+  ],
+  [
+    "panel.designations.max_layers.label",
+    "Capas máx. a excavar"
+  ],
+  [
+    "panel.designations.max_layers.tooltip",
+    "Capas máximas a excavar desde la superficie. (∞ = sin límite)."
+  ],
+  [
+    "panel.designations.elevation_limit.label",
+    "Límite de elevación"
+  ],
+  [
+    "panel.designations.elevation_limit.tooltip",
+    "Profundidad máxima (absoluta) de excavación (-∞ = sin límite)."
+  ],
+  [
+    "panel.designations.ore_purity.label",
+    "Pureza del mineral"
+  ],
+  [
+    "panel.designations.ore_purity.tooltip",
+    "Qué tan estrictamente filtra el escaneo la calidad del mineral.\nDesactivado: incluye todas las casillas, excava hasta la profundidad completa.\nBajo: excluye casillas muy dispersas, recorta vetas finas restantes en el fondo.\nMedio: calidad moderada — omite casillas con mucha sobrecarga o poco mineral.\nAlto: solo casillas ricas con una columna de mineral limpia.\nMáx.: mineral casi puro — estricto con la sobrecarga, la profundidad y la densidad del mineral."
+  ],
+  [
+    "panel.designations.corridor_clearance.label",
+    "Espacio libre de corredor"
+  ],
+  [
+    "panel.designations.corridor_clearance.tooltip",
+    "Ancho mínimo de corredor para conectar regiones de mineral y asegurar la transitabilidad.\n0 = desactivado (las regiones quedan separadas, sin corredores ni rellenado de huecos).\n1 = corredores de 1 casilla (vehículos pequeños y medianos).\n2 = corredores de 2 casillas (megavehículos).\n"
+  ],
+  [
+    "panel.designations.scanning_filter.label",
+    "Filtro de escaneo:"
+  ],
+  [
+    "panel.designations.scanning_filter.tooltip",
+    "Fuerza el escaneo a buscar un producto específico. Ninguno = productos útiles primero, luego escombros y después tierra."
+  ],
+  [
+    "panel.designations.ramp_warning.failed",
+    "Falló la generación de la rampa — no se encontró una ruta válida."
+  ],
+  [
+    "panel.designations.ramp_warning.truncated",
+    "La rampa se colocó, pero no alcanzó la superficie — puede que las excavadoras no puedan excavar."
+  ],
+  [
+    "panel.designations.ramp_warning.not_accessible",
+    "No se pudo encontrar una ruta válida desde la torre hasta la rampa generada. Comprueba si hay problemas de acceso."
+  ],
+  [
+    "toolbox.corner_outer.tooltip",
+    "Esquina (exterior): coloca rampas de esquina convexas."
+  ],
+  [
+    "toolbox.corner_inner.tooltip",
+    "Esquina (interior): coloca rampas de esquina cóncavas."
+  ],
+  [
+    "panel.farming.title",
+    "Preparación de tierra de cultivo"
+  ],
+  [
+    "panel.farming.description",
+    "Automatiza la preparación y el rellenado final de designaciones planas para que su capa superior sea cultivable."
+  ],
+  [
+    "panel.farming.automation_toggle.label",
+    "Automatización de preparación de tierra de cultivo"
+  ],
+  [
+    "panel.farming.automation_toggle.tooltip",
+    "Prepara designaciones planas para tierra de cultivo retirando el material superior no apto y restaurando después las órdenes finales de rellenado."
+  ],
+  [
+    "panel.ore.title",
+    "Composición del mineral"
+  ],
+  [
+    "panel.ore.description",
+    "Recursos minerales dentro de las designaciones de minería actuales de esta torre. (No tiene en cuenta posibles desprendimientos)."
+  ],
+  [
+    "panel.ore.prompt_scan",
+    "Pulsa ↺ para escanear la composición del mineral."
+  ],
+  [
+    "panel.ore.scan_tooltip",
+    "Escanear composición del mineral"
+  ],
+  [
+    "panel.ore.no_tower",
+    "No hay ninguna torre seleccionada."
+  ],
+  [
+    "panel.ore.no_minable_designations",
+    "No se encontraron designaciones minables."
+  ],
+  [
+    "panel.ore.priority_selected_tooltip",
+    "Excavadoras configuradas para priorizar {0}. Haz clic para quitarlo."
+  ],
+  [
+    "panel.ore.priority_set_tooltip",
+    "Configura todas las excavadoras para priorizar {0}."
+  ]
+]

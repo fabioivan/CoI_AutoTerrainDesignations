@@ -250,6 +250,17 @@ namespace AutoTerrainDesignations
                 }
             }
 
+            if (rampWidth > 1)
+            {
+                LogDebug("Retrying ramp search with width 1 as last resort.");
+                List<RampCandidate> narrowCandidates = CollectRampCandidates(tower, tileDepths, 1, 0, reservedRampTiles);
+                outcome = TryPlaceRampCandidates(tower, tileDepths, cornerHeights, terrMgr, narrowCandidates, rampProto, placedRampOrigins, reservedRampTiles, useLocalSurfaceReference, out topRowTile);
+                if (outcome != RampPlacementOutcome.Failed)
+                {
+                    return outcome;
+                }
+            }
+
             LogDebug("No valid ramp corridor satisfied the slope and surface rules.");
             s_lastRampFailureReason =
                 candidates.Count == 0
@@ -268,13 +279,38 @@ namespace AutoTerrainDesignations
 
             candidates.Sort((left, right) => left.Score.CompareTo(right.Score));
 
+            bool hasFallback = false;
+            RampCandidate fallbackCandidate = default;
+            Tile2i fallbackTopRowTile = default;
+
             foreach (RampCandidate candidate in candidates)
             {
-                RampPlacementOutcome outcome = TryPlaceRamp(tower, candidate, tileDepths, cornerHeights, terrMgr, rampProto, placedRampOrigins, reservedRampTiles, useLocalSurfaceReference, out topRowTile);
-                if (outcome != RampPlacementOutcome.Failed)
+                RampPlacementOutcome dryOutcome = TryPlaceRamp(tower, candidate, tileDepths, cornerHeights, terrMgr, rampProto, placedRampOrigins, reservedRampTiles, useLocalSurfaceReference, dryRun: true, out Tile2i dryTopRowTile);
+                if (dryOutcome == RampPlacementOutcome.Failed)
                 {
-                    return outcome;
+                    continue;
                 }
+
+                if (!IsRampMouthReachableFromTower(tower, dryTopRowTile))
+                {
+                    if (!hasFallback)
+                    {
+                        hasFallback = true;
+                        fallbackCandidate = candidate;
+                        fallbackTopRowTile = dryTopRowTile;
+                    }
+
+                    continue;
+                }
+
+                TryPlaceRamp(tower, candidate, tileDepths, cornerHeights, terrMgr, rampProto, placedRampOrigins, reservedRampTiles, useLocalSurfaceReference, dryRun: false, out topRowTile);
+                return dryOutcome;
+            }
+
+            if (hasFallback)
+            {
+                TryPlaceRamp(tower, fallbackCandidate, tileDepths, cornerHeights, terrMgr, rampProto, placedRampOrigins, reservedRampTiles, useLocalSurfaceReference, dryRun: false, out topRowTile);
+                return RampPlacementOutcome.NotAccessible;
             }
 
             topRowTile = default;
@@ -397,15 +433,11 @@ namespace AutoTerrainDesignations
 
             int oreMidX = oreSumX / rampWidth;
             int oreMidY = oreSumY / rampWidth;
-            int directionToTower = (towerPos.X - oreMidX) * direction.X + (towerPos.Y - oreMidY) * direction.Y;
-            if (directionToTower <= 0)
-            {
-                return;
-            }
-
-            // No dominant-axis filter here: any direction with a positive dot product toward the
-            // tower is allowed. ScoreRampCandidate already ranks by alignment (alignmentScore term),
-            // so the best-aligned direction is tried first and secondary directions act as fallbacks.
+            // No direction filter here: all four cardinal directions are candidates.
+            // ScoreRampCandidate ranks by alignment toward the tower (alignmentScore term), so the
+            // best-aligned direction is tried first. Directions pointing away from the tower are
+            // kept as fallbacks for cases where the preferred corridor is blocked by a building or
+            // void — IsFreeRampTile will reject those blocked corridors during placement.
 
             for (int lane = 0; lane < rampWidth; lane++)
             {
@@ -509,7 +541,7 @@ namespace AutoTerrainDesignations
             return bestDepthSpread <= maxAllowedDepthSpread;
         }
 
-        private static RampPlacementOutcome TryPlaceRamp(IAreaManagingTower tower, RampCandidate candidate, Dict<Tile2i, int> tileDepths, Dict<Tile2i, int> cornerHeights, TerrainManager terrMgr, TerrainDesignationProto rampProto, List<Tile2i>? placedRampOrigins, HashSet<Tile2i>? reservedRampTiles, bool useLocalSurfaceReference, out Tile2i topRowTile)
+        private static RampPlacementOutcome TryPlaceRamp(IAreaManagingTower tower, RampCandidate candidate, Dict<Tile2i, int> tileDepths, Dict<Tile2i, int> cornerHeights, TerrainManager terrMgr, TerrainDesignationProto rampProto, List<Tile2i>? placedRampOrigins, HashSet<Tile2i>? reservedRampTiles, bool useLocalSurfaceReference, bool dryRun, out Tile2i topRowTile)
         {
             topRowTile = default;
             int laneCount = candidate.OreTiles.Length;
@@ -586,9 +618,30 @@ namespace AutoTerrainDesignations
                     }
                 }
 
-                int[] referenceBoundaryHeights = useLocalSurfaceReference
-                    ? BuildSurfaceBoundaryHeights(terrMgr, currentTiles)
-                    : BuildConstantBoundaryHeights(laneCount, towerReferenceHeight);
+                int[] referenceBoundaryHeights;
+                if (useLocalSurfaceReference)
+                {
+                    referenceBoundaryHeights = BuildSurfaceBoundaryHeights(terrMgr, currentTiles);
+                }
+                else
+                {
+                    // Once the incline has reached the tower's z-level, switch to local surface
+                    // heights so the ramp can continue rising to crest terrain that sits above
+                    // the tower's elevation. The pathability check in TryPlaceRampCandidates
+                    // ensures only accessible crested ramps are committed first.
+                    bool atOrAboveTowerLevel = true;
+                    for (int c = 0; c < currentBoundaryHeights.Length; c++)
+                    {
+                        if (currentBoundaryHeights[c] < towerReferenceHeight)
+                        {
+                            atOrAboveTowerLevel = false;
+                            break;
+                        }
+                    }
+                    referenceBoundaryHeights = atOrAboveTowerLevel
+                        ? BuildSurfaceBoundaryHeights(terrMgr, currentTiles)
+                        : BuildConstantBoundaryHeights(laneCount, towerReferenceHeight);
+                }
                 int[] nextBoundaryHeights = new int[laneCount + 1];
                 for (int corner = 0; corner < currentBoundaryHeights.Length; corner++)
                 {
@@ -650,8 +703,12 @@ namespace AutoTerrainDesignations
                 if (hasReadyMouthDesignation
                     || (isAboveSurfaceEverywhere && (!reachedReferenceLevel || !RampProtoUsesMiningReadiness(rampProto))))
                 {
-                    AddGapConnectorPlans(plannedTiles, candidate, laneFirstEdgeHeights, laneSecondEdgeHeights);
-                    ApplyRampPlan(plannedTiles, tileDepths, cornerHeights, rampProto, placedRampOrigins);
+                    if (!dryRun)
+                    {
+                        AddGapConnectorPlans(plannedTiles, candidate, laneFirstEdgeHeights, laneSecondEdgeHeights);
+                        ApplyRampPlan(plannedTiles, tileDepths, cornerHeights, rampProto, placedRampOrigins);
+                    }
+
                     topRowTile = currentTiles[0];
                     return RampPlacementOutcome.Crested;
                 }
@@ -670,8 +727,12 @@ namespace AutoTerrainDesignations
 
                 if (!allInsideTower)
                 {
-                    AddGapConnectorPlans(plannedTiles, candidate, laneFirstEdgeHeights, laneSecondEdgeHeights);
-                    ApplyRampPlan(plannedTiles, tileDepths, cornerHeights, rampProto, placedRampOrigins);
+                    if (!dryRun)
+                    {
+                        AddGapConnectorPlans(plannedTiles, candidate, laneFirstEdgeHeights, laneSecondEdgeHeights);
+                        ApplyRampPlan(plannedTiles, tileDepths, cornerHeights, rampProto, placedRampOrigins);
+                    }
+
                     topRowTile = currentTiles[0];
                     return RampPlacementOutcome.Truncated;
                 }

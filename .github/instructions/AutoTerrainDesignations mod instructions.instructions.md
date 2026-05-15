@@ -27,6 +27,7 @@ Allowed notification pattern:
 - **Public releases** (CoI Hub): collate all lettered alpha changes into a single new version (e.g. `0.2.5a + 0.2.5b + 0.2.5c → 0.2.6`). Update both `manifest.json` and `changelog.txt`.
 - `manifest.json` version and the top `changelog.txt` entry must always match.
 - Major and minor version increments only on user's request.
+- Updated change log should always accompany a release package
 
 # Externalize constants to settings file
 If new constants or parameters are added to the mod, suggest that these be externalized into the settings file with clear descriptions, so power users can easily customize behavior without needing to modify code.
