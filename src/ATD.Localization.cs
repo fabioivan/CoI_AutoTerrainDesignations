@@ -85,12 +85,6 @@ namespace AutoTerrainDesignations
             Loc.Str("panel.designations.scanning_filter.label", "Scanning filter:", "Label for the scanning filter ore picker row.");
         public static LocStr DesigScanningFilterTip =
             Loc.Str("panel.designations.scanning_filter.tooltip", "Force the scan to target a specific product. None = useful products first, then debris, then dirt.", "Tooltip for the scanning filter ore picker.");
-        public static LocStr DesigRampWarnFailed =
-            Loc.Str("panel.designations.ramp_warning.failed", "Ramp generation failed \u2014 no valid path found.", "Warning icon tooltip when ramp generation failed.");
-        public static LocStr DesigRampWarnTruncated =
-            Loc.Str("panel.designations.ramp_warning.truncated", "Ramp placed but did not reach the surface \u2014 excavators may not be able to excavate.", "Warning icon tooltip when ramp was truncated.");
-        public static LocStr DesigRampWarnNotAccessible =
-            Loc.Str("panel.designations.ramp_warning.not_accessible", "Couldn't find a valid path from the tower to the generated ramp. Check for access problems.", "Warning icon tooltip when ramp is not accessible.");
 
         // ------------------------------------------------------------------ //
         // Ore composition panel

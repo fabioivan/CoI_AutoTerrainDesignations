@@ -71,7 +71,6 @@ namespace AutoTerrainDesignations
 
         public static void InspectorActivatePostfix(object __instance)
         {
-            DesignationPanel.ClearRampWarning(__instance);
             DesignationPanel.RefreshDisplays(__instance);
             OreCompositionPanel.ResetContent(__instance);
             FarmingAnalysisPanel.ResetContent(__instance);

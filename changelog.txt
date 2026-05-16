@@ -1,4 +1,5 @@
 v0.4.0g | 2026-05-16 [alpha]
+* Removed ramp warning icon from the **Terrain Designations** panel; ramp outcome warnings are now shown through the vanilla notification system
 * Farming automation performance pass for large auto-reactivated farming sessions:
     - Added throttling for farming access/pathability rechecks so thousand-origin sessions do not repeatedly run the expensive access scan every few ticks when designation state has not changed
     - Cached pending farming fill-area tile sets and rebuild them only when queued filling origins, shoulders, rims, or origin state changes
