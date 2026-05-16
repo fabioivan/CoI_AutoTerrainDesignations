@@ -1,3 +1,5 @@
+v0.4.0j | 2026-05-16 [unreleased]
+
 v0.4.0i | 2026-05-16
 * Added **atd_set_auto_release_vehicles_when_idle** console command to set the global default for the **Auto-release when idle** toggle; also added **AutoReleaseWhenIdle** to the **atd_get_settings** output
 * Fixed: vehicles released by **Auto-release when idle** were not re-assigned to the tower before saving, so after a save/load the tower had no record of them and could not reclaim them when excavation work resumed
