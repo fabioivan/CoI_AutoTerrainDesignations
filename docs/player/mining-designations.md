@@ -73,6 +73,14 @@ Controls whether ATD connects separated ore regions with passable corridors.
 - `1` allows narrow corridors for small and medium vehicles.
 - `2` uses wider corridors suitable for mega vehicles.
 
+### `Auto-release when idle`
+
+When enabled, all excavators and trucks assigned to the tower are automatically unassigned while none of the tower's managed mining or leveling designations have pending excavation work.
+
+- Released vehicles are tracked. When pending excavation work returns, ATD re-assigns those vehicles back to the tower.
+- Useful for sharing vehicles between multiple towers when excavation work is intermittent.
+- Default is off. The global default is controlled by **autoReleaseVehiclesWhenIdle** in `ATDsettings.json`.
+
 ### `Scanning filter`
 
 Forces the scan to target one specific product.
@@ -123,6 +131,7 @@ Useful console commands:
 | `atd_set_bottom_flattening on\|off` | Toggles the extra bottom-flattening pass. |
 | `atd_set_min_corridor_clearance n` | Sets the global default corridor clearance. |
 | `atd_set_ramp_notifications on\|off` | Enables or disables ramp access warning notifications on mine towers (Failed, Truncated, NotAccessible icons). |
+| `atd_set_auto_release_when_idle on\|off` | Sets the global default for the **Auto-release when idle** feature; individual towers can override this via the inspector toggle. |
 | `atd_save_settings` | Writes the current in-memory defaults to `ATDsettings.json`. |
 | `atd_reset_to_defaults` | Resets the in-memory defaults to the built-in values. |
 

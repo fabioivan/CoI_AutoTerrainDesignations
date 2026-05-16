@@ -24,6 +24,7 @@ This document covers the pre-farming mining systems that existed through the 0.3
 | `ATD.OreCompositionPanel.cs` | Ore-composition analysis and inspector UI |
 | `ATD.PrioritySync.cs` | Sticky per-tower excavator priority propagation |
 | `ATD.Settings.cs` | Global settings load/save/migration and purity arrays |
+| `ATD.IdleVehicleRelease.cs` | Idle vehicle release and restore logic |
 | `ATD.Api.cs` | Supported public API surface |
 
 ## Scan pipeline
@@ -178,6 +179,44 @@ Not public API:
 
 - scan heuristics
 - purity-array semantics
+
+## Idle vehicle release
+
+`ATD.IdleVehicleRelease.cs` implements automatic vehicle unassignment and re-assignment per mine tower.
+
+### Runtime state
+
+`s_idleReleasedVehiclesByTower` is a `Dictionary<EntityId, List<Vehicle>>` keyed by tower entity ID.
+
+- A key being present means the tower is currently in the released state.
+- The value is the list of vehicles that were unassigned; it may be empty if the tower had no vehicles at release time.
+- The dictionary is cleared by `ClearIdleVehicleReleaseState()` on world reset.
+
+### Tick behavior
+
+`TickIdleVehicleRelease()` is called in the farming-sync timer block inside `AutoTerrainDesignationsTicker`, once per `FARMING_SYNC_INTERVAL_GAME_SECONDS` (~1 s). For each live `MineTower`:
+
+1. If the feature is disabled for the tower and the tower is in the released state, vehicles are restored immediately.
+2. If the feature is enabled and there are no pending excavation jobs, `ReleaseIdleVehicles` is called.
+3. If the feature is enabled and pending excavation work exists, `RestoreIdleReleasedVehicles` is called.
+
+### Pending-work check
+
+`HasPendingExcavationJobs(MineTower)` iterates `ManagedDesignations`. A designation counts as pending when its proto matches the mining or leveling designator proto and `IsMiningNotFulfilled` is true. The method returns `true` (safe, do not release) if the proto references are not yet initialized.
+
+### Release
+
+`ReleaseIdleVehicles` snapshots `AllVehicles`, calls `UnassignVehicle(vehicle, cancelJobs: true)` for each non-destroyed vehicle, and stores the list under the tower's entity ID. An empty list is stored if the tower had no vehicles, which still marks the tower as in the released state.
+
+### Restore
+
+`RestoreIdleReleasedVehicles` iterates the stored list and calls `AssignVehicle` for each vehicle that is not destroyed, not already assigned elsewhere (`vehicle.AssignedTo.HasValue`), and not already in `AllVehicles`. The dictionary entry is removed after restore regardless of how many vehicles were successfully re-assigned.
+
+### Per-tower vs global default
+
+`IsIdleVehicleReleaseEnabledForId(EntityId)` checks `s_towerSettingsByEntityId` first; if no per-tower entry exists it falls back to `AutoTerrainDesignationsMod.AutoReleaseVehiclesWhenIdle`. This means the global default applies to towers that have never been customized, and the inspector toggle writes a per-tower override that shadows the default for that specific tower.
+
+`SetTowerAutoReleaseWhenIdle(IAreaManagingTower, bool)` in `ATD.State.cs` calls `TryRestoreIdleReleasedVehiclesForTower` when the value is set to `false`, so disabling the toggle triggers an immediate restore.
 - ramp scoring internals
 - ore composition internals
 - priority bootstrap logic

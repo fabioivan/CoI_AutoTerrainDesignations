@@ -15,7 +15,8 @@ The changelog.txt in the root is a user-facing change log that complies with the
 - Top-level bullet entries use `*`.
 - Sub-bullets use 4 spaces followed by `-`.
 - New changes are **added to the current top entry** (the one matching `manifest.json`). Do not create a new version entry for code changes alone.
-- A `[packaged]` suffix is appended to the version header line when that version is actually built as a package, e.g. `v0.4.0d | 2026-05-15 [packaged]`.
+- The current top entry carries an `[unreleased]` suffix while work is in progress, e.g. `v0.4.1 | 2026-05-16 [unreleased]`.
+- The `[unreleased]` suffix is **removed** (leaving no suffix) when a package or release build is performed, e.g. `v0.4.1 | 2026-05-16`.
 - The version (and its entry) is **only bumped when the user explicitly requests a package or release build**.
 
 ## Content rules
@@ -38,13 +39,15 @@ The changelog.txt in the root is a user-facing change log that complies with the
 
 ## Example entries
 ```
-v0.2.5b | 2026-05-08 [packaged]   ← bumped and marked when package was built
+v0.2.6 | 2026-05-10 [unreleased]   ← in-progress; [unreleased] is removed when packaged
 * Corner designations now snap height and variant to adjacent existing designations
+
+v0.2.5b | 2026-05-08               ← packaged; no suffix
 * Fixed: ramp generation could place ramps outside the tower area
 
-v0.2.5a | 2026-05-01 [packaged]
+v0.2.5a | 2026-05-01               ← packaged; no suffix
 * Added ore purity filter
 
-v0.2.4 | 2026-04-20 [packaged]   ← public release collating 0.2.4a + 0.2.4b
+v0.2.4 | 2026-04-20                ← public release collating 0.2.4a + 0.2.4b
 * ...
 ```
