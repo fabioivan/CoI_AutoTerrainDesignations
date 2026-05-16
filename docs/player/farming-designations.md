@@ -1,5 +1,7 @@
 # Farmland Preparation
 
+*Current as of: v0.4.0j*
+
 ## What it does
 
 Flat level designations normally tell mine towers to move terrain to a target height, but the resulting top layer may contain rock, gravel, or other non-farmable material. Farmland Preparation automates the full workflow so the final surface is ready for farming crops.
@@ -45,7 +47,8 @@ Vehicle access ramps are added automatically when excavators or trucks cannot re
 - The mod never changes global (cross-tower) dump rules.
 - Automation state is not saved. After reloading a save, re-enable the toggle to resume.
 - If you manually remove or replace a tracked designation, the mod drops that tile from the session. Place a new flat level designation and the next scan will pick it up.
-- When extending a farming area, be careful to place new designations at the correct target level. Otherwise, new designations may attach to an adjacent area that is still in preparation one level below the intended elevation.
+- When extending a farming area adjacent to a previously completed area, the completed tiles are temporarily hidden to prevent dirt-spill conflicts with the new preparation work. They are restored together with the new tiles during the filling phase.
+- When extending a farming area, make sure new designations use the correct target height. If they do not match the adjacent area's height, new tiles may be treated as a separate session at the wrong elevation.
 
 ## Settings
 

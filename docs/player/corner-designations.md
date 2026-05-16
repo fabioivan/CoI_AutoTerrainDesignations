@@ -1,5 +1,7 @@
 # Corner Designations
 
+*Current as of: v0.4.0j*
+
 ## What it does
 
 Corner Designations add a manual terrain-shaping mode to the vanilla terrain designation tools. Instead of placing only flat or ramp-style 4×4 designations, you can place a designation where one corner is one level higher or lower than the other three.

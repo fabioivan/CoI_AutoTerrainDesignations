@@ -1,5 +1,7 @@
 # Mining Designations
 
+*Current as of: v0.4.0j*
+
 ## What it does
 
 Auto Terrain Designations scans a mine tower's work area, finds the ore or material you want to target, and places mining designations automatically. Instead of drawing a large set of manual dig orders tile by tile, you let the mod build a connected designation region that follows the deposit.
@@ -39,7 +41,7 @@ Controls the width of generated access ramps.
 - `0` disables ramp generation.
 - Higher values reserve more width for vehicles but require more free space.
 
-If ramp generation fails or produces a questionable result, ATD shows a yellow warning icon next to **Create Designations**.
+If ramp generation fails or produces a questionable result, ATD shows a warning notification on the tower.
 
 ### `Max layers to excavate`
 

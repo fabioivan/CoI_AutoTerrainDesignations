@@ -276,6 +276,7 @@ namespace AutoTerrainDesignations
             else
             {
                 LogDebug("Ramp generation is disabled in settings.");
+                ClearTowerLastRampOutcome(tower);
             }
 
             RemoveFulfilledDesignationsForTower(tower);
