@@ -55,12 +55,34 @@ namespace AutoTerrainDesignations
 
                 contentCol.Add(automationToggle);
 
+                var idleReleaseToggle = new Toggle(standalone: true)
+                    .Label(AtdLocalization.FarmingIdleReleaseLabel)
+                    .ObserveValue(() =>
+                    {
+                        var tower = entityProp.GetValue(inspector) as IAreaManagingTower;
+                        if (tower == null) return AutoTerrainDesignationsMod.AutoReleaseVehiclesWhenIdle;
+                        return AutoDepthDesignation.GetTowerAutoReleaseWhenIdle(tower);
+                    })
+                    .OnValueChanged((Action<bool>)delegate(bool isOn)
+                    {
+                        var tower = entityProp.GetValue(inspector) as IAreaManagingTower;
+                        if (tower == null) return;
+                        AutoDepthDesignation.SetTowerAutoReleaseWhenIdle(tower, isOn);
+                    })
+                    .Tooltip(AtdLocalization.FarmingIdleReleaseTip);
+
+                contentCol.Add(idleReleaseToggle);
+
                 s_resetContentCallbacks[inspector] = (Action)delegate
                 {
                     AutoDepthDesignation.EnsureFarmingAutomationDefaultEnabledForTower(
                         entityProp.GetValue(inspector) as IAreaManagingTower);
                     automationToggle.Value(AutoDepthDesignation.IsFarmingAutomationEnabledForTower(
                         entityProp.GetValue(inspector) as IAreaManagingTower));
+                    var tower = entityProp.GetValue(inspector) as IAreaManagingTower;
+                    idleReleaseToggle.Value(tower == null
+                        ? AutoTerrainDesignationsMod.AutoReleaseVehiclesWhenIdle
+                        : AutoDepthDesignation.GetTowerAutoReleaseWhenIdle(tower));
                 };
 
                 var panel = new PanelWithHeader()

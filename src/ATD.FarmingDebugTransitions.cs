@@ -223,6 +223,7 @@ namespace AutoTerrainDesignations
                 {
                     placed++;
                     session.PreparationShoulderOrigins.Add(shoulderOrigin);
+                    MarkPendingFillingAreaDirty(session);
                 }
             }
 
@@ -321,6 +322,7 @@ namespace AutoTerrainDesignations
             }
 
             session.PreparationShoulderOrigins.Clear();
+            MarkPendingFillingAreaDirty(session);
         }
 
         private static DesignationData BuildFlatLevelDesignationData(Tile2i origin, int targetHeight)

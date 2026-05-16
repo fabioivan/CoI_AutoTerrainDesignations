@@ -20,9 +20,11 @@ Vehicle access ramps are added automatically when excavators or trucks cannot re
 
 3. Enable the **Farmland Preparation Automation** toggle. The mod takes it from there.
 
-4. You can close the inspector — automation continues running in the background.
+4. Optionally enable **Auto-release when idle** if this tower should release assigned excavators and trucks while it has no pending mining or leveling work.
 
-5. To pause, disable the toggle. All temporary modifications are restored immediately: original level designations reappear and dump rules return to their previous state.
+5. You can close the inspector — automation continues running in the background.
+
+6. To pause, disable the toggle. All temporary modifications are restored immediately: original level designations reappear and dump rules return to their previous state.
 
 ## Status phases
 
@@ -46,6 +48,14 @@ Vehicle access ramps are added automatically when excavators or trucks cannot re
 - When extending a farming area, be careful to place new designations at the correct target level. Otherwise, new designations may attach to an adjacent area that is still in preparation one level below the intended elevation.
 
 ## Settings
+
+### `Auto-release when idle`
+
+When enabled, all excavators and trucks assigned to the tower are automatically unassigned while none of the tower's managed mining or leveling designations have pending excavation work.
+
+- Released vehicles are tracked. When pending excavation work returns, ATD re-assigns those vehicles back to the tower.
+- Useful for sharing vehicles between multiple towers when excavation work is intermittent.
+- Default is off. The global default is controlled by **autoReleaseVehiclesWhenIdle** in `ATDsettings.json`.
 
 ### `reEnableFarmingOnLoad` (ATDsettings.json)
 

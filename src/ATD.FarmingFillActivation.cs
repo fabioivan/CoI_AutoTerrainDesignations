@@ -37,6 +37,7 @@ namespace AutoTerrainDesignations
             RemoveFarmingRimAlignmentDesignations(session);
             foreach (FarmingOriginSession origin in session.Origins.Values)
                 origin.IsFillingActivated = false;
+            MarkPendingFillingAreaDirty(session);
         }
 
         private static int ActivateFarmingFillingOrigins(
@@ -67,6 +68,7 @@ namespace AutoTerrainDesignations
                     originState.IsHiddenUntilFilling = false;
                     originState.IsFillingActivated = true;
                     originState.Phase = FarmingOriginPhase.Filling;
+                    MarkPendingFillingAreaDirty(session);
                     originState.Detail = "activated final fill designation";
                     s_farmingDebugStoredDesignations.Remove(originState.Origin);
                 }
@@ -74,6 +76,7 @@ namespace AutoTerrainDesignations
                 {
                     failed++;
                     originState.Phase = FarmingOriginPhase.Blocked;
+                    MarkPendingFillingAreaDirty(session);
                     originState.Detail = "failed to restore original level designation for filling";
                 }
             }
@@ -103,6 +106,7 @@ namespace AutoTerrainDesignations
             }
 
             session.RimAlignmentOrigins.Clear();
+            MarkPendingFillingAreaDirty(session);
         }
 
         private static int PlaceFarmingRimAlignmentDesignations(
@@ -201,6 +205,7 @@ namespace AutoTerrainDesignations
                     {
                         placed++;
                         session.RimAlignmentOrigins.Add(rimOrigin);
+                        MarkPendingFillingAreaDirty(session);
                     }
                 }
             }

@@ -9,6 +9,7 @@
 // Auto Terrain Designations - Farming Preparation Sessions
 using System.Collections;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
 using System.Text;
@@ -96,6 +97,18 @@ namespace AutoTerrainDesignations
             public HashSet<Tile2i> PreparationAccessRampOrigins { get; } = new HashSet<Tile2i>();
             public HashSet<Tile2i> FillingAccessRampOrigins { get; } = new HashSet<Tile2i>();
             public HashSet<Tile2i> RimAlignmentOrigins { get; } = new HashSet<Tile2i>();
+            public HashSet<Tile2i> CachedPendingFillingArea { get; } = new HashSet<Tile2i>();
+            public bool PendingFillingAreaDirty { get; set; } = true;
+            public int LastFarmingPerfLogTick { get; set; } = int.MinValue;
+            public int LastFarmingPerfBreakdownLogTick { get; set; } = int.MinValue;
+        }
+
+        private struct FarmingAdvanceStats
+        {
+            public int Inspected;
+            public int Analyzed;
+            public int HiddenSkipped;
+            public int Dropped;
         }
 
         private static readonly Dictionary<EntityId, FarmingPreparationSession> s_farmingPreparationSessions =
@@ -107,6 +120,8 @@ namespace AutoTerrainDesignations
         private static bool s_farmingReEnableOnLoadPending;
         private static bool s_farmingSaveRestorePending;
         private const float FARMING_FILLING_STABILIZATION_SECONDS = 3f;
+        private const long FARMING_PERF_LOG_THRESHOLD_MS = 25;
+        private const int FARMING_PERF_LOG_COOLDOWN_TICKS = 5;
 
         private static string FarmingTr(string key, string englishDefault)
         {
@@ -128,6 +143,59 @@ namespace AutoTerrainDesignations
             s_farmingTowerBootstrapCompleted = false;
             s_farmingReEnableOnLoadPending = false;
             s_farmingSaveRestorePending = false;
+        }
+
+        private static void MarkPendingFillingAreaDirty(FarmingPreparationSession session)
+        {
+            session.PendingFillingAreaDirty = true;
+        }
+
+        private static void ClearPendingFillingAreaCache(FarmingPreparationSession session)
+        {
+            session.CachedPendingFillingArea.Clear();
+            session.PendingFillingAreaDirty = true;
+        }
+
+        private static void LogFarmingPerfIfSlow(
+            FarmingPreparationSession session,
+            IAreaManagingTower? tower,
+            string operation,
+            long elapsedMs,
+            string detail)
+        {
+            if (elapsedMs < FARMING_PERF_LOG_THRESHOLD_MS)
+                return;
+
+            int ticksSinceLastLog = s_farmingAutomationTickIndex - session.LastFarmingPerfLogTick;
+            if (ticksSinceLastLog >= 0 && ticksSinceLastLog < FARMING_PERF_LOG_COOLDOWN_TICKS)
+                return;
+
+            session.LastFarmingPerfLogTick = s_farmingAutomationTickIndex;
+            string towerText = TryGetTowerEntityId(tower!, out EntityId towerId) && towerId.IsValid
+                ? towerId.ToString()
+                : "?";
+            s_log.Info($"[ATD Farming Perf] {operation}: {elapsedMs} ms, tower={towerText}, origins={session.Origins.Count}, {detail}");
+        }
+
+        private static void LogFarmingPerfBreakdownIfSlow(
+            FarmingPreparationSession session,
+            IAreaManagingTower? tower,
+            string operation,
+            long elapsedMs,
+            string detail)
+        {
+            if (elapsedMs < FARMING_PERF_LOG_THRESHOLD_MS)
+                return;
+
+            int ticksSinceLastLog = s_farmingAutomationTickIndex - session.LastFarmingPerfBreakdownLogTick;
+            if (ticksSinceLastLog >= 0 && ticksSinceLastLog < FARMING_PERF_LOG_COOLDOWN_TICKS)
+                return;
+
+            session.LastFarmingPerfBreakdownLogTick = s_farmingAutomationTickIndex;
+            string towerText = TryGetTowerEntityId(tower!, out EntityId towerId) && towerId.IsValid
+                ? towerId.ToString()
+                : "?";
+            s_log.Info($"[ATD Farming Perf] {operation}: {elapsedMs} ms, tower={towerText}, origins={session.Origins.Count}, {detail}");
         }
 
         internal static void RequestFarmingReEnableOnLoad(bool gameWasLoaded)
@@ -267,6 +335,7 @@ namespace AutoTerrainDesignations
             session.Tower = tower;
             session.LastAccessRampRequestKey = string.Empty;
             session.FillingAllDoneSinceRealtime = null;
+            ClearPendingFillingAreaCache(session);
             ClearFarmingFillingVehicleClearOut(session);
             ClearFarmingFillingActivation(session);
             RemoveOwnedFarmingPreparationShoulders(session);
@@ -283,6 +352,7 @@ namespace AutoTerrainDesignations
                     restored++;
                     originState.IsHiddenUntilFilling = false;
                     originState.IsFillingActivated = false;
+                    MarkPendingFillingAreaDirty(session);
                     s_farmingDebugStoredDesignations.Remove(originState.Origin);
                 }
                 else
@@ -627,6 +697,7 @@ namespace AutoTerrainDesignations
 
         private static bool RunFarmingPreparationPass(IAreaManagingTower tower, FarmingPreparationSession session)
         {
+            Stopwatch sw = Stopwatch.StartNew();
             if (s_desigManager == null || s_levelingProto == null)
             {
                 session.LastReport = "[ATD Farming] Stage 3 stopped: designation manager or leveling proto unavailable.";
@@ -634,14 +705,42 @@ namespace AutoTerrainDesignations
             }
 
             TerrainManager terrMgr = s_desigManager.TerrainManager;
-            CaptureCurrentFlatFarmingDesignations(tower, session);
-            AdvanceCapturedFarmingOrigins(session, terrMgr);
-            bool accessReady = EnsureFarmingAccessForCurrentPhase(tower, session, isFilling: false);
-            session.LastReport = FormatFarmingPreparationSummary(session);
+            Stopwatch phaseSw = Stopwatch.StartNew();
+            int captured = CaptureCurrentFlatFarmingDesignations(tower, session);
+            phaseSw.Stop();
+            long captureMs = phaseSw.ElapsedMilliseconds;
 
-            return !accessReady || session.Origins.Values.Any(origin =>
+            phaseSw.Restart();
+            FarmingAdvanceStats advanceStats = AdvanceCapturedFarmingOrigins(session, terrMgr);
+            phaseSw.Stop();
+            long advanceMs = phaseSw.ElapsedMilliseconds;
+
+            phaseSw.Restart();
+            bool accessReady = EnsureFarmingAccessForCurrentPhase(tower, session, isFilling: false);
+            phaseSw.Stop();
+            long accessMs = phaseSw.ElapsedMilliseconds;
+
+            phaseSw.Restart();
+            session.LastReport = FormatFarmingPreparationSummary(session);
+            phaseSw.Stop();
+            long summaryMs = phaseSw.ElapsedMilliseconds;
+
+            phaseSw.Restart();
+            bool keepPreparing = !accessReady || session.Origins.Values.Any(origin =>
                 origin.Phase == FarmingOriginPhase.AnalysisLeveling ||
                 origin.Phase == FarmingOriginPhase.Preparing);
+            phaseSw.Stop();
+            long stateScanMs = phaseSw.ElapsedMilliseconds;
+
+            sw.Stop();
+            LogFarmingPerfBreakdownIfSlow(
+                session,
+                tower,
+                "preparation breakdown",
+                sw.ElapsedMilliseconds,
+                $"capture={captureMs}ms, advance={advanceMs}ms, access={accessMs}ms, summary={summaryMs}ms, stateScan={stateScanMs}ms, captured={captured}, inspected={advanceStats.Inspected}, analyzed={advanceStats.Analyzed}, hiddenSkipped={advanceStats.HiddenSkipped}, dropped={advanceStats.Dropped}, accessReady={accessReady}, keepPreparing={keepPreparing}");
+            LogFarmingPerfIfSlow(session, tower, "preparation pass", sw.ElapsedMilliseconds, $"accessReady={accessReady}, keepPreparing={keepPreparing}");
+            return keepPreparing;
         }
 
         internal static void RestoreFarmingRuntimeForSave()
@@ -726,6 +825,7 @@ namespace AutoTerrainDesignations
 
         private static bool RunFarmingFillingPass(IAreaManagingTower tower, FarmingPreparationSession session)
         {
+            Stopwatch sw = Stopwatch.StartNew();
             if (s_desigManager == null)
             {
                 session.LastReport = "[ATD Farming] Stage 4 stopped: designation manager unavailable.";
@@ -814,6 +914,7 @@ namespace AutoTerrainDesignations
             {
                 session.Origins.Remove(origin);
                 s_farmingDebugStoredDesignations.Remove(origin);
+                MarkPendingFillingAreaDirty(session);
             }
 
             bool hasFilling = session.Origins.Values.Any(origin => origin.Phase == FarmingOriginPhase.Filling);
@@ -848,6 +949,8 @@ namespace AutoTerrainDesignations
             if (hasFilling || !allDone)
             {
                 session.FillingAllDoneSinceRealtime = null;
+                sw.Stop();
+                LogFarmingPerfIfSlow(session, tower, "filling pass", sw.ElapsedMilliseconds, $"hasFilling={hasFilling}, allDone={allDone}");
                 return hasFilling;
             }
 
@@ -864,17 +967,22 @@ namespace AutoTerrainDesignations
             {
                 session.LastReport = FormatFarmingPreparationSummary(session)
                     + $"\n  Filling stabilization: {stableFor:F1}/{FARMING_FILLING_STABILIZATION_SECONDS:F0}s; keeping farmable dump rules active.";
+                sw.Stop();
+                LogFarmingPerfIfSlow(session, tower, "filling pass", sw.ElapsedMilliseconds, $"hasFilling={hasFilling}, allDone={allDone}, stableFor={stableFor:F1}");
                 return true;
             }
 
             session.FillingAllDoneSinceRealtime = null;
+            sw.Stop();
+            LogFarmingPerfIfSlow(session, tower, "filling pass", sw.ElapsedMilliseconds, $"hasFilling={hasFilling}, allDone={allDone}, stableFor={stableFor:F1}");
             return false;
         }
 
-        private static void CaptureCurrentFlatFarmingDesignations(
+        private static int CaptureCurrentFlatFarmingDesignations(
             IAreaManagingTower tower,
             FarmingPreparationSession session)
         {
+            int captured = 0;
             foreach (TerrainDesignation designation in tower.ManagedDesignations)
             {
                 if (!IsLevelingDesignation(designation))
@@ -896,6 +1004,7 @@ namespace AutoTerrainDesignations
                         Phase = FarmingOriginPhase.Preparing,
                         Detail = "captured existing Stage 2 temporary preparation designation"
                     };
+                    captured++;
                     continue;
                 }
 
@@ -903,21 +1012,29 @@ namespace AutoTerrainDesignations
                     continue;
 
                 session.Origins[origin] = new FarmingOriginSession(origin, designation.Data, targetHeight);
+                captured++;
             }
+
+            return captured;
         }
 
-        private static void AdvanceCapturedFarmingOrigins(FarmingPreparationSession session, TerrainManager terrMgr)
+        private static FarmingAdvanceStats AdvanceCapturedFarmingOrigins(FarmingPreparationSession session, TerrainManager terrMgr)
         {
             var droppedOrigins = new List<Tile2i>();
+            FarmingAdvanceStats stats = new FarmingAdvanceStats();
             session.LastDroppedOriginDetail = string.Empty;
 
             foreach (FarmingOriginSession originState in session.Origins.Values)
             {
+                stats.Inspected++;
                 var currentDesignation = s_desigManager!.GetDesignationAt(originState.Origin);
                 if (!currentDesignation.HasValue)
                 {
                     if (originState.IsHiddenUntilFilling)
+                    {
+                        stats.HiddenSkipped++;
                         continue;
+                    }
 
                     droppedOrigins.Add(originState.Origin);
                     session.LastDroppedOriginDetail = $"Dropped ({originState.Origin.X},{originState.Origin.Y}): designation was removed.";
@@ -931,11 +1048,12 @@ namespace AutoTerrainDesignations
                     continue;
                 }
 
+                stats.Analyzed++;
                 FarmingAnalysisRow row = AnalyzeFarmingDesignation(originState.Origin, originState.TargetHeight, terrMgr);
                 switch (originState.Phase)
                 {
                     case FarmingOriginPhase.Preparing:
-                        AdvancePreparingOrigin(originState, row);
+                        AdvancePreparingOrigin(session, originState, row);
                         break;
                     case FarmingOriginPhase.ReadyForFilling:
                     case FarmingOriginPhase.Filling:
@@ -952,7 +1070,11 @@ namespace AutoTerrainDesignations
             {
                 session.Origins.Remove(origin);
                 s_farmingDebugStoredDesignations.Remove(origin);
+                MarkPendingFillingAreaDirty(session);
             }
+
+            stats.Dropped = droppedOrigins.Count;
+            return stats;
         }
 
         private static void AdvanceAnalysisOrigin(
@@ -964,10 +1086,12 @@ namespace AutoTerrainDesignations
             {
                 case FarmingAnalysisState.Done:
                     originState.Phase = FarmingOriginPhase.Done;
+                    MarkPendingFillingAreaDirty(session);
                     HideFarmingDesignationUntilFilling(originState, "already done; original designation hidden until tower-level filling");
                     break;
                 case FarmingAnalysisState.ReadyForFilling:
                     originState.Phase = FarmingOriginPhase.ReadyForFilling;
+                    MarkPendingFillingAreaDirty(session);
                     HideFarmingDesignationUntilFilling(originState, "ready for filling; original designation hidden until tower-level filling");
                     break;
                 case FarmingAnalysisState.NeedsLeveling:
@@ -983,6 +1107,7 @@ namespace AutoTerrainDesignations
                         out int shoulderCount))
                     {
                         originState.Phase = FarmingOriginPhase.Preparing;
+                        MarkPendingFillingAreaDirty(session);
                         originState.Detail = shoulderCount > 0
                             ? $"placed temporary preparation target={originState.TargetHeight - 1}, support shoulders={shoulderCount}"
                             : $"placed temporary preparation target={originState.TargetHeight - 1}";
@@ -1296,14 +1421,21 @@ namespace AutoTerrainDesignations
 
         private static HashSet<Tile2i> BuildPendingFarmingFillingArea(FarmingPreparationSession session)
         {
+            if (!session.PendingFillingAreaDirty)
+                return session.CachedPendingFillingArea;
+
+            Stopwatch sw = Stopwatch.StartNew();
             const int designationSize = 4;
             const int margin = 2;
-            var area = new HashSet<Tile2i>();
+            HashSet<Tile2i> area = session.CachedPendingFillingArea;
+            area.Clear();
+            int queuedOrigins = 0;
             foreach (FarmingOriginSession originState in session.Origins.Values)
             {
                 if (!IsQueuedForFarmingFilling(originState))
                     continue;
 
+                queuedOrigins++;
                 for (int x = originState.Origin.X - margin; x < originState.Origin.X + designationSize + margin; x++)
                 {
                     for (int y = originState.Origin.Y - margin; y < originState.Origin.Y + designationSize + margin; y++)
@@ -1320,6 +1452,9 @@ namespace AutoTerrainDesignations
                 }
             }
 
+            session.PendingFillingAreaDirty = false;
+            sw.Stop();
+            LogFarmingPerfIfSlow(session, session.Tower, "pending fill area rebuild", sw.ElapsedMilliseconds, $"queuedOrigins={queuedOrigins}, areaTiles={area.Count}, shoulders={session.PreparationShoulderOrigins.Count}");
             return area;
         }
 
@@ -1346,7 +1481,7 @@ namespace AutoTerrainDesignations
             return true;
         }
 
-        private static void AdvancePreparingOrigin(FarmingOriginSession originState, FarmingAnalysisRow row)
+        private static void AdvancePreparingOrigin(FarmingPreparationSession session, FarmingOriginSession originState, FarmingAnalysisRow row)
         {
             if (row.State == FarmingAnalysisState.NeedsPreparation)
             {
@@ -1357,6 +1492,7 @@ namespace AutoTerrainDesignations
             if (row.State == FarmingAnalysisState.ReadyForFilling)
             {
                 originState.Phase = FarmingOriginPhase.ReadyForFilling;
+                MarkPendingFillingAreaDirty(session);
                 originState.Detail = "preparation complete; keeping target-1 designation active until tower-level filling";
                 return;
             }

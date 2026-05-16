@@ -8,6 +8,7 @@
 // is included by mistake, I intend to correct it promptly upon discovery or notice.
 // Auto Terrain Designations - Farming Access Ramps
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using Mafi;
@@ -24,6 +25,10 @@ namespace AutoTerrainDesignations
         private const int FARMING_ACCESS_SEARCH_MARGIN_TILES = 96;
         private const int MAX_FARMING_ACCESS_SEARCH_TILES = 250000;
         private const int FARMING_ACCESS_RECHECK_TICKS = 10;
+        private const int FARMING_ACCESS_MEDIUM_WORK_THRESHOLD = 250;
+        private const int FARMING_ACCESS_LARGE_WORK_THRESHOLD = 1000;
+        private const int FARMING_ACCESS_MEDIUM_RECHECK_TICKS = 30;
+        private const int FARMING_ACCESS_LARGE_RECHECK_TICKS = 90;
 
         private static bool EnsureFarmingAccessForCurrentPhase(
             IAreaManagingTower tower,
@@ -80,14 +85,19 @@ namespace AutoTerrainDesignations
             }
 
             string workKey = BuildFarmingAccessWorkKey(currentWork, isFilling);
-            if (TryUseCachedFarmingAccessResult(session, workKey, out bool cachedReady))
+            if (TryUseCachedFarmingAccessResult(session, workKey, currentWork.Count, out bool cachedReady))
                 return cachedReady;
 
+            Stopwatch accessSw = Stopwatch.StartNew();
             if (!TryFindInaccessibleFarmingDesignations(tower, currentWork, isFilling, out List<TerrainDesignation> inaccessible))
             {
+                accessSw.Stop();
+                LogFarmingPerfIfSlow(session, tower, "access check", accessSw.ElapsedMilliseconds, $"mode={(isFilling ? "filling" : "preparation")}, work={currentWork.Count}, inaccessible=unknown");
                 SetFarmingAccessCache(session, workKey, ready: true, string.Empty);
                 return true;
             }
+            accessSw.Stop();
+            LogFarmingPerfIfSlow(session, tower, "access check", accessSw.ElapsedMilliseconds, $"mode={(isFilling ? "filling" : "preparation")}, work={currentWork.Count}, inaccessible={inaccessible.Count}");
 
             if (inaccessible.Count == 0)
             {
@@ -237,6 +247,7 @@ namespace AutoTerrainDesignations
         private static bool TryUseCachedFarmingAccessResult(
             FarmingPreparationSession session,
             string workKey,
+            int workCount,
             out bool ready)
         {
             ready = true;
@@ -244,12 +255,22 @@ namespace AutoTerrainDesignations
                 return false;
 
             int ticksSinceCheck = s_farmingAutomationTickIndex - session.LastAccessCheckTick;
-            if (ticksSinceCheck < 0 || ticksSinceCheck >= FARMING_ACCESS_RECHECK_TICKS)
+            int recheckTicks = GetFarmingAccessRecheckTicks(workCount);
+            if (ticksSinceCheck < 0 || ticksSinceCheck >= recheckTicks)
                 return false;
 
             ready = session.LastAccessCheckReady;
             session.LastAccessRampDetail = session.LastAccessCheckDetail;
             return true;
+        }
+
+        private static int GetFarmingAccessRecheckTicks(int workCount)
+        {
+            if (workCount >= FARMING_ACCESS_LARGE_WORK_THRESHOLD)
+                return FARMING_ACCESS_LARGE_RECHECK_TICKS;
+            if (workCount >= FARMING_ACCESS_MEDIUM_WORK_THRESHOLD)
+                return FARMING_ACCESS_MEDIUM_RECHECK_TICKS;
+            return FARMING_ACCESS_RECHECK_TICKS;
         }
 
         private static void SetFarmingAccessCache(

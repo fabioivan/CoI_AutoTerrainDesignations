@@ -123,10 +123,10 @@ namespace AutoTerrainDesignations
             Loc.Str("panel.farming.automation_toggle.label", "Farmland Preparation Automation", "Label on the farming automation toggle.");
         public static LocStr FarmingToggleTip =
             Loc.Str("panel.farming.automation_toggle.tooltip", "Prepare flat level designations for farmland by clearing unsuitable top material, then restoring the final fill orders.", "Tooltip on the farming automation toggle.");
-        public static LocStr DesigIdleReleaseLabel =
-            Loc.Str("panel.designations.idle_release.label", "Auto-release when idle", "Label on the auto-release vehicles when idle toggle.");
-        public static LocStr DesigIdleReleaseTip =
-            Loc.Str("panel.designations.idle_release.tooltip",
+        public static LocStr FarmingIdleReleaseLabel =
+            Loc.Str("panel.farming.idle_release.label", "Auto-release when idle", "Label on the auto-release vehicles when idle toggle.");
+        public static LocStr FarmingIdleReleaseTip =
+            Loc.Str("panel.farming.idle_release.tooltip",
                 "Automatically unassign all excavators and trucks from this tower when no designation has pending excavation work.\n" +
                 "Vehicles are tracked and re-assigned when excavation work returns.",
                 "Tooltip on the auto-release vehicles when idle toggle.");
