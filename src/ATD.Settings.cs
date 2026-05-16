@@ -423,6 +423,10 @@ namespace AutoTerrainDesignations
                 bool? farmingPanelCollapsed = ParseBool(json, "farmingPanelCollapsed");
                 if (farmingPanelCollapsed.HasValue && ShouldPreserveBool(farmingPanelCollapsed.Value, migrateGeneratedDefaults, true))
                     AutoTerrainDesignationsMod.SetFarmingPanelCollapsed(farmingPanelCollapsed.Value);
+
+                bool? autoReleaseVehiclesWhenIdle = ParseBool(json, "autoReleaseVehiclesWhenIdle");
+                if (autoReleaseVehiclesWhenIdle.HasValue && ShouldPreserveBool(autoReleaseVehiclesWhenIdle.Value, migrateGeneratedDefaults, false))
+                    AutoTerrainDesignationsMod.SetAutoReleaseVehiclesWhenIdle(autoReleaseVehiclesWhenIdle.Value);
             }
             catch (Exception ex)
             {
@@ -711,6 +715,9 @@ namespace AutoTerrainDesignations
             sb.AppendLine();
             sb.AppendLine("  \"_comment_farmingPanelCollapsed\": \"Default collapsed state for the Farming panel when a mine tower inspector is created. false = expanded by default, true = collapsed by default. Default: true.\",");
             sb.AppendLine($"  \"farmingPanelCollapsed\": {BoolToJsonStr(AutoTerrainDesignationsMod.FarmingPanelCollapsed)},");
+            sb.AppendLine();
+            sb.AppendLine("  \"_comment_autoReleaseVehiclesWhenIdle\": \"Default starting value for the Auto-release when idle toggle on each mine tower. When enabled, ATD automatically unassigns all excavators and trucks from the tower once no managed designation has pending excavation work (no mining or leveling tile above its target height). Vehicles are tracked and re-assigned when excavation work returns. Can be toggled per tower in-game. Default: false.\",");
+            sb.AppendLine($"  \"autoReleaseVehiclesWhenIdle\": {BoolToJsonStr(AutoTerrainDesignationsMod.AutoReleaseVehiclesWhenIdle)},");
             sb.AppendLine();
             sb.AppendLine("  \"purityLevels\": {");
             sb.AppendLine("    \"_comment\": \"Thresholds applied at each Ore Purity Level. Arrays have 5 entries: [Off, Low, Med, High, Max]. Off (index 0) should always be 0 / no filtering. These define what each level means \u2014 edit if you want to retune the purity steps.\",");

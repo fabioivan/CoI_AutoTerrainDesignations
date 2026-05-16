@@ -104,6 +104,7 @@ public sealed class AutoTerrainDesignationsMod : IMod, IDisposable
         SetReEnableFarmingOnLoad(true);
         SetExcavatorCompletionNotificationsEnabled(true);
         SetRampNotificationsEnabled(true);
+        SetAutoReleaseVehiclesWhenIdle(false);
     }
 
     public static void SetMaxHeightDiff(int value)
@@ -213,6 +214,14 @@ public sealed class AutoTerrainDesignationsMod : IMod, IDisposable
     public static void SetFarmingPanelCollapsed(bool value)
     {
         FarmingPanelCollapsed = value;
+    }
+
+    /// <summary>Whether ATD automatically releases all vehicles from a tower when there are no pending excavation jobs.</summary>
+    public static bool AutoReleaseVehiclesWhenIdle { get; private set; } = false;
+
+    public static void SetAutoReleaseVehiclesWhenIdle(bool value)
+    {
+        AutoReleaseVehiclesWhenIdle = value;
     }
 
     public void Initialize(DependencyResolver resolver, bool gameWasLoaded)

@@ -1,4 +1,6 @@
-v0.4.0f | 2026-05-16
+v0.4.0f | 2026-05-16 [packaged]
+* Added **Auto-release when idle** toggle in the Terrain Designations panel: when enabled for a tower, all excavators and trucks are unassigned while none of the tower's managed mining or leveling designations have pending excavation work; released vehicles are tracked and automatically re-assigned when excavation work resumes
+    - Global default is controlled by **autoReleaseVehiclesWhenIdle** in ATDsettings.json (default: false); the per-tower toggle in the inspector overrides this default
 * Added diagonal corner preparation shoulders: when both adjacent cardinal shoulders are needed, a corner shoulder is placed at the diagonal position with 3 outer corners at z-2 and the inner corner (facing the farming origin) at z-1
 * Fixed: filling transition could begin before shoulder designations were fully filled; the transition is now deferred until all active shoulder designations are fulfilled
 * Fixed: preparation shoulders were not placed on sides where the terrain drop only crosses the diagonal corner of the designation; the check now samples the center 2×2 tiles of each adjacent 4×4 area instead of the boundary strip

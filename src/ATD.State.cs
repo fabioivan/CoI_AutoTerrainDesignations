@@ -63,11 +63,12 @@ namespace AutoTerrainDesignations
             public int? MaxDepthToDigTo { get; private set; }
             public int OrePurityLevel { get; private set; }
             public int CorridorClearance { get; private set; }
+            public bool AutoReleaseVehiclesWhenIdle { get; private set; }
 
             /// <summary>Outcome of the most recent ramp generation attempt. Null = no scan run yet.</summary>
             public RampPlacementOutcome? LastRampOutcome { get; set; }
 
-            public ATDTowerSettings(int maxHeightDiff, int rampWidth, int maxLayersToExcavate, int? maxDepthToDigTo, int orePurityLevel, int corridorClearance)
+            public ATDTowerSettings(int maxHeightDiff, int rampWidth, int maxLayersToExcavate, int? maxDepthToDigTo, int orePurityLevel, int corridorClearance, bool autoReleaseVehiclesWhenIdle = false)
             {
                 SetMaxHeightDiff(maxHeightDiff);
                 SetRampWidth(rampWidth);
@@ -75,6 +76,7 @@ namespace AutoTerrainDesignations
                 SetMaxDepthToDigTo(maxDepthToDigTo);
                 SetOrePurityLevel(orePurityLevel);
                 SetCorridorClearance(corridorClearance);
+                SetAutoReleaseWhenIdle(autoReleaseVehiclesWhenIdle);
             }
 
             public static ATDTowerSettings FromGlobalDefaults() => new ATDTowerSettings(
@@ -83,7 +85,8 @@ namespace AutoTerrainDesignations
                 AutoTerrainDesignationsMod.MaxLayersToExcavate,
                 AutoTerrainDesignationsMod.MaxDepthToDigTo,
                 AutoTerrainDesignationsMod.OrePurityLevel,
-                AutoTerrainDesignationsMod.MinCorridorClearance);
+                AutoTerrainDesignationsMod.MinCorridorClearance,
+                AutoTerrainDesignationsMod.AutoReleaseVehiclesWhenIdle);
 
             public void SetMaxHeightDiff(int value) => MaxHeightDiff = Math.Max(1, Math.Min(3, value));
 
@@ -96,6 +99,8 @@ namespace AutoTerrainDesignations
             public void SetOrePurityLevel(int value) => OrePurityLevel = Math.Max(0, Math.Min(4, value));
 
             public void SetCorridorClearance(int value) => CorridorClearance = Math.Max(0, Math.Min(2, value));
+
+            public void SetAutoReleaseWhenIdle(bool value) => AutoReleaseVehiclesWhenIdle = value;
         }
 
         private static readonly Tile2i[] s_cardinalDirections =
@@ -185,6 +190,20 @@ namespace AutoTerrainDesignations
         internal static int GetTowerCorridorClearance(IAreaManagingTower tower) => GetOrCreateTowerSettings(tower).CorridorClearance;
         internal static void SetTowerCorridorClearance(IAreaManagingTower tower, int value) => GetOrCreateTowerSettings(tower).SetCorridorClearance(value);
 
+        internal static bool GetTowerAutoReleaseWhenIdle(IAreaManagingTower tower)
+        {
+            if (TryGetTowerEntityId(tower, out EntityId entityId) && s_towerSettingsByEntityId.TryGetValue(entityId, out ATDTowerSettings settings))
+                return settings.AutoReleaseVehiclesWhenIdle;
+            return AutoTerrainDesignationsMod.AutoReleaseVehiclesWhenIdle;
+        }
+
+        internal static void SetTowerAutoReleaseWhenIdle(IAreaManagingTower tower, bool value)
+        {
+            GetOrCreateTowerSettings(tower).SetAutoReleaseWhenIdle(value);
+            if (!value)
+                TryRestoreIdleReleasedVehiclesForTower(tower);
+        }
+
         internal static RampPlacementOutcome? GetTowerLastRampOutcome(IAreaManagingTower tower) => GetOrCreateTowerSettings(tower).LastRampOutcome;
 
         internal static void SetTowerLastRampOutcome(IAreaManagingTower tower, RampPlacementOutcome outcome)
@@ -233,6 +252,7 @@ namespace AutoTerrainDesignations
 
             ResetTransientNotifications();
             ClearFarmingRuntimeState();
+            ClearIdleVehicleReleaseState();
         }
 
         public static void Initialize(

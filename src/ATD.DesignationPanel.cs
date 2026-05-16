@@ -377,6 +377,24 @@ namespace AutoTerrainDesignations
                 panel.BodyAdd(oreRow);
             }
 
+            // --- Auto-release when idle toggle ---
+            var idleReleaseToggle = new Toggle(standalone: true)
+                .Label(AtdLocalization.DesigIdleReleaseLabel)
+                .ObserveValue(() =>
+                {
+                    var tower = getTower();
+                    if (tower == null) return AutoTerrainDesignationsMod.AutoReleaseVehiclesWhenIdle;
+                    return AutoDepthDesignation.GetTowerAutoReleaseWhenIdle(tower);
+                })
+                .OnValueChanged((Action<bool>)delegate(bool isOn)
+                {
+                    var tower = getTower();
+                    if (tower == null) return;
+                    AutoDepthDesignation.SetTowerAutoReleaseWhenIdle(tower, isOn);
+                })
+                .Tooltip(AtdLocalization.Tip(AtdLocalization.DesigIdleReleaseTip));
+            panel.BodyAdd(idleReleaseToggle);
+
             s_bindings[key] = new Bindings(getTower, rampWidthDisplay, maxLayersDisplay, minElevDisplay, orePurityDisplay, clearanceDisplay, rampWarningIcon);
             return panel;
         }

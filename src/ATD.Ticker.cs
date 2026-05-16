@@ -84,6 +84,11 @@ public sealed class AutoTerrainDesignationsTicker : MonoBehaviour
             AutoDepthDesignation.TickFarmingPreparationSessions();
         }
         catch { }
+        try
+        {
+            AutoDepthDesignation.TickIdleVehicleRelease();
+        }
+        catch { }
     }
 
     private void OnGUI()
