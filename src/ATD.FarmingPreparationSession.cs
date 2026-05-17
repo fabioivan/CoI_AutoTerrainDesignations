@@ -1720,6 +1720,7 @@ namespace AutoTerrainDesignations
             session.FillingAllDoneSinceRealtime = null;
 
             var farmableSet = new HashSet<LooseProductProto>(farmableDumpProducts);
+            var currentSet = new HashSet<LooseProductProto>(currentProducts);
             foreach (LooseProductProto product in currentProducts)
             {
                 if (!farmableSet.Contains(product) && !TryInvokeTowerDumpRuleMethod(tower, "RemoveProductToDump", product, out error))
@@ -1728,6 +1729,8 @@ namespace AutoTerrainDesignations
 
             foreach (LooseProductProto product in farmableDumpProducts)
             {
+                if (currentSet.Contains(product))
+                    continue;
                 if (!TryInvokeTowerDumpRuleMethod(tower, "AddProductToDump", product, out error))
                     return false;
             }
@@ -1745,6 +1748,7 @@ namespace AutoTerrainDesignations
                 return;
 
             var snapshotSet = new HashSet<LooseProductProto>(session.TowerDumpRulesSnapshot);
+            var currentSet = new HashSet<LooseProductProto>(currentProducts);
             foreach (LooseProductProto product in currentProducts)
             {
                 if (!snapshotSet.Contains(product))
@@ -1753,7 +1757,8 @@ namespace AutoTerrainDesignations
 
             foreach (LooseProductProto product in session.TowerDumpRulesSnapshot)
             {
-                TryInvokeTowerDumpRuleMethod(tower, "AddProductToDump", product, out _);
+                if (!currentSet.Contains(product))
+                    TryInvokeTowerDumpRuleMethod(tower, "AddProductToDump", product, out _);
             }
 
             session.TowerDumpRulesOwned = false;
