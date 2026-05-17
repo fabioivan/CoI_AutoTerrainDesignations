@@ -1,8 +1,9 @@
 # Farming Designations — Architecture Reference
+Current as of release: 0.4.0l [unreleased]
 
 ## Feature summary
 
-Farming Designations automates the preparation and topsoil filling of flat level designations so the resulting surface is farmable. It runs as a background per-tower session driven by `AutoTerrainDesignationsTicker`. Each tower gets its own `FarmingPreparationSession` (keyed by `EntityId`), which holds a `FarmingOriginSession` per tracked designation. The inspector panel is a control and status surface only; closing it does not pause automation.
+Farming Designations automates the preparation and topsoil filling of flat level designations so the resulting surface is farmable. It runs as a background per-tower session driven by `AutoTerrainDesignationsMod.onSimUpdate()`, which is registered with `simLoopEvents.Update` and therefore executes on the **simulation thread** once per game-second (`Duration.OneSecond`). Each tower gets its own `FarmingPreparationSession` (keyed by `EntityId`), which holds a `FarmingOriginSession` per tracked designation. The inspector panel is a control and status surface only; closing it does not pause automation.
 
 ---
 

@@ -8,6 +8,8 @@
 // is included by mistake, I intend to correct it promptly upon discovery or notice.
 // Auto Terrain Designations - Idle Vehicle Release
 using System.Collections.Generic;
+using System.Linq;
+using System.Text;
 using Mafi;
 using Mafi.Core;
 using Mafi.Core.Buildings.Mine;
@@ -284,6 +286,63 @@ namespace AutoTerrainDesignations
                 if (rereleased > 0)
                     LogDebug($"[IdleRelease] Tower {towerId}: re-released {rereleased} vehicle(s) after save.");
             }
+        }
+
+        internal static string FormatAssignedVehiclesDump()
+        {
+            if (s_entitiesManager == null)
+                return "[ATD] Not initialized.";
+
+            var sb = new StringBuilder();
+            sb.AppendLine("[ATD] Assigned vehicles per mine tower:");
+
+            int towerIndex = 0;
+            foreach (MineTower tower in s_entitiesManager.GetAllEntitiesOfType<MineTower>()
+                .OrderBy(t => t.Position2f.Tile2i.Y)
+                .ThenBy(t => t.Position2f.Tile2i.X))
+            {
+                if (tower.IsDestroyed)
+                    continue;
+
+                towerIndex++;
+                bool hasEntityId = TryGetTowerEntityId(tower, out EntityId towerId) && towerId.IsValid;
+                bool releaseEnabled = hasEntityId && IsIdleVehicleReleaseEnabledForId(towerId);
+                List<Vehicle> releasedList = null;
+                bool isReleased = hasEntityId && s_idleReleasedVehiclesByTower.TryGetValue(towerId, out releasedList);
+
+                Tile2i pos = tower.Position2f.Tile2i;
+                string towerId_str = hasEntityId ? towerId.ToString() : "unknown";
+                sb.AppendLine();
+                sb.AppendLine($"Tower {towerIndex}: id={towerId_str}, pos=({pos.X},{pos.Y})");
+                sb.AppendLine($"  AutoRelease={releaseEnabled} | ATD-released={isReleased} ({(isReleased ? releasedList!.Count : 0)} vehicles tracked)");
+
+                int assignedCount = 0;
+                foreach (Vehicle v in tower.AllVehicles)
+                {
+                    if (v == null || v.IsDestroyed) continue;
+                    assignedCount++;
+                    string vName = v.GetTitle();
+                    sb.AppendLine($"  assigned  [{v.Id}] {vName} | HasTrueJob={v.HasTrueJob}");
+                }
+                if (assignedCount == 0)
+                    sb.AppendLine("  (no assigned vehicles)");
+
+                if (isReleased && releasedList!.Count > 0)
+                {
+                    foreach (Vehicle v in releasedList)
+                    {
+                        if (v == null) continue;
+                        string vName = v.IsDestroyed ? "<destroyed>" : v.GetTitle();
+                        string extra = v.IsDestroyed ? "" : $" | HasTrueJob={v.HasTrueJob}";
+                        sb.AppendLine($"  atd-rel   [{v.Id}] {vName}{extra}");
+                    }
+                }
+            }
+
+            if (towerIndex == 0)
+                sb.AppendLine("  (no mine towers found)");
+
+            return sb.ToString().TrimEnd();
         }
 
         private static void RestoreIdleReleasedVehicles(MineTower tower, EntityId towerId)

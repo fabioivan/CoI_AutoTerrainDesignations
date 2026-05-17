@@ -251,6 +251,12 @@ public sealed class AtdConsoleCommands
         return "[ATD] Settings reset to built-in defaults in memory. Use atd_save_settings to save them.";
     }
 
+    [ConsoleCommand(false, false, "Lists all mine towers with their assigned vehicles and ATD auto-release state.", null)]
+    private string atdGetAssignedVehicles()
+    {
+        return AutoDepthDesignation.FormatAssignedVehiclesDump();
+    }
+
     private static bool TryParseConsoleBool(string value, out bool parsed)
     {
         switch ((value ?? string.Empty).Trim().ToLowerInvariant())

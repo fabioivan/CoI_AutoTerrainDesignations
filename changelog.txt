@@ -1,4 +1,6 @@
 v0.4.0l | 2026-05-17 [unreleased]
+* Added **atd_get_assigned_vehicles** console command: lists every mine tower with its assigned vehicles, per-vehicle job state, ATD auto-release setting, and which vehicles ATD has released
+* Fixed: filling-area vehicle evacuation issued `CancelAllJobsAndResetState` on all vehicles in the area, including those actively mining or driving; only idle vehicles (no active job) are now ordered to evacuate; vehicles with an active job leave the area naturally when their job finishes
 * Fixed: `TickFarmingPreparationSessions` and `TickIdleVehicleRelease` were called from the Unity main thread while the game's simulation thread could concurrently iterate the same terrain designation set, causing an occasional `InvalidOperationException: Set changed while enumerating`; both operations now run on the simulation thread via `simLoopEvents.Update`
 
 v0.4.0k | 2026-05-17

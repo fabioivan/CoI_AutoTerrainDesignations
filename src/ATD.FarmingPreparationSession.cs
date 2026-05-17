@@ -1232,6 +1232,7 @@ namespace AutoTerrainDesignations
             int inside = 0;
             int enqueued = 0;
             int notEnqueued = 0;
+            int skippedActive = 0;
             int assumedStuck = 0;
             int failed = 0;
 
@@ -1253,6 +1254,15 @@ namespace AutoTerrainDesignations
                         continue;
 
                     inside++;
+
+                    // Only evacuate vehicles that are idle (no active mining/dumping/navigation job).
+                    // Vehicles already working will leave the area naturally when they finish.
+                    if (vehicle.HasTrueJob)
+                    {
+                        skippedActive++;
+                        continue;
+                    }
+
                     vehicle.CancelAllJobsAndResetState();
                     if (s_parkAndWaitJobFactory.TryEnqueueParkingJobIfNeeded(vehicle, mineTower))
                     {
@@ -1277,7 +1287,7 @@ namespace AutoTerrainDesignations
             }
 
             session.LastVehicleClearOutDetail =
-                $"Filling transition ordered vehicles out of fill and shoulder area: scanned={total}, inside={inside}, enqueued={enqueued}, assumedStuck={assumedStuck}, alreadyNearOrSkipped={notEnqueued}, failed={failed}.";
+                $"Filling transition ordered vehicles out of fill and shoulder area: scanned={total}, inside={inside}, enqueued={enqueued}, assumedStuck={assumedStuck}, skippedActive={skippedActive}, alreadyNearOrSkipped={notEnqueued}, failed={failed}.";
             LogDebug(session.LastVehicleClearOutDetail);
             return enqueued;
         }

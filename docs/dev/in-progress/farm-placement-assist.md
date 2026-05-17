@@ -1,4 +1,5 @@
 # Farm Placement Assist — Implementation Plan
+Current as of release: 0.4.0k
 
 **Status:** Planning / not yet implemented.  
 **Feature description:** Allow players to place farm buildings on uneven or infertile ground

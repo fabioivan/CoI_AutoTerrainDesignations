@@ -1,4 +1,5 @@
 # Farming Automation Scalability
+Current as of release: 0.4.0k
 
 ## Context
 

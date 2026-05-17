@@ -1,4 +1,5 @@
 # Mining Designations — Architecture Reference
+Current as of release: 0.4.0k
 
 ## Feature summary
 

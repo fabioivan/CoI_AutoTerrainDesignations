@@ -1,4 +1,5 @@
 # Localization Architecture
+Current as of release: 0.4.0k
 
 ATD uses `CoI.AutoHelpers.Localization` to translate strings at runtime. All
 user-visible strings are declared as `public static LocStr` fields in

@@ -1,4 +1,5 @@
 # Runtime State and Save-Detached Attachments in ATD
+Current as of release: 0.4.0k
 
 ## Purpose
 
