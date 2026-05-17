@@ -1043,6 +1043,16 @@ namespace AutoTerrainDesignations
 
                 if (!IsLevelingDesignation(currentDesignation.Value))
                 {
+                    // A hidden origin (ReadyForFilling / Done) has no active designation in the
+                    // world, so a preparation-phase access ramp may have been placed at this tile
+                    // as a passthrough to reach an inaccessible cluster.  Do not drop the origin
+                    // — the ramp is tracked and will be removed by RemoveOwnedFarmingAccessRamps
+                    // before filling activation restores the origin's designation.
+                    if (originState.IsHiddenUntilFilling)
+                    {
+                        stats.HiddenSkipped++;
+                        continue;
+                    }
                     droppedOrigins.Add(originState.Origin);
                     session.LastDroppedOriginDetail = $"Dropped ({originState.Origin.X},{originState.Origin.Y}): designation was replaced with a non-leveling designation.";
                     continue;
