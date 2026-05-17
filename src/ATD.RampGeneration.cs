@@ -11,6 +11,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Mafi;
 using Mafi.Collections;
+using Mafi.Core;
 using Mafi.Core.Buildings.Towers;
 using Mafi.Core.Entities;
 using Mafi.Core.Entities.Static;
@@ -133,9 +134,21 @@ namespace AutoTerrainDesignations
 
         /// <summary>
         /// Absolute world tile coordinates occupied by non-tower static buildings within the current tower area.
-        /// Built at the start of each <see cref="CreateAccessRamp"/> call and cleared afterward.
+        /// Rebuilt by <see cref="BuildBuildingOccupiedTiles"/> at most once per
+        /// <see cref="BUILDING_OCCUPIED_TILES_CACHE_TICKS"/> farming ticks per tower.
         /// </summary>
         private static readonly HashSet<Tile2i> s_buildingOccupiedTiles = new HashSet<Tile2i>();
+
+        /// <summary>
+        /// Origin tile coordinates (4-tile-grid-aligned) of every terrain designation currently present in the
+        /// tower area. Rebuilt once per <see cref="CreateAccessRamp"/> call via a single
+        /// <see cref="TerrainDesignationsManager.SelectDesignationsInArea"/> scan so that
+        /// <see cref="IsFreeRampTile"/> can use fast <see cref="HashSet{T}.Contains"/> lookups instead of
+        /// thousands of individual <see cref="TerrainDesignationsManager.GetDesignationAt"/> API calls.
+        /// </summary>
+        private static readonly HashSet<Tile2i> s_designationOriginsInArea = new HashSet<Tile2i>();
+        private static EntityId s_buildingOccupiedTilesCachedTowerId = EntityId.Invalid;
+        private static int s_buildingOccupiedTilesCachedTick = int.MinValue;
         private static string? s_lastRampFailureReason;
 
         internal enum RampPlacementOutcome { Failed, Truncated, Crested, NotAccessible }
@@ -143,8 +156,31 @@ namespace AutoTerrainDesignations
         private const uint ALL_DESIGNATION_TILES_MASK = 0x1FFFFFF;
         private const uint READY_TO_MINE_MASK = 0x1F8C63F;
 
+        // How many farming ticks to reuse a cached s_buildingOccupiedTiles result for the same
+        // tower. Buildings inside an active designation area almost never change, so a ~60-second
+        // window is safe and prevents repeated expensive GetAllEntitiesOfType scans that can stall
+        // when another mod (e.g. CLExporter) holds the entity-collection lock concurrently.
+        private const int BUILDING_OCCUPIED_TILES_CACHE_TICKS = 600;
+
+        // Maximum number of unique ramp-mouth positions to test for vehicle reachability in a
+        // single TryPlaceRampCandidates call.  Candidates are tried best-score-first, so the top
+        // options are always evaluated.  Capping prevents runaway BFS cost when many candidates
+        // share the same general area but none are reachable (the fallback is used anyway).
+        private const int MAX_RAMP_REACHABILITY_CHECKS = 50;
+
         private static void BuildBuildingOccupiedTiles(IAreaManagingTower tower)
         {
+            // Return the existing set if it was recently built for this same tower.
+            bool hasTowerId = TryGetTowerEntityId(tower, out EntityId towerId);
+            int ticksSinceCache = s_farmingAutomationTickIndex - s_buildingOccupiedTilesCachedTick;
+            if (hasTowerId
+                && towerId == s_buildingOccupiedTilesCachedTowerId
+                && ticksSinceCache >= 0
+                && ticksSinceCache < BUILDING_OCCUPIED_TILES_CACHE_TICKS)
+            {
+                return;
+            }
+
             s_buildingOccupiedTiles.Clear();
             if (s_entitiesManager == null)
             {
@@ -164,6 +200,23 @@ namespace AutoTerrainDesignations
                         s_buildingOccupiedTiles.Add(absCoord);
                     }
                 }
+            }
+
+            if (hasTowerId)
+            {
+                s_buildingOccupiedTilesCachedTowerId = towerId;
+                s_buildingOccupiedTilesCachedTick = s_farmingAutomationTickIndex;
+            }
+        }
+
+        private static void BuildDesignationOriginsInArea(IAreaManagingTower tower)
+        {
+            s_designationOriginsInArea.Clear();
+            if (s_desigManager == null) return;
+            foreach (TerrainDesignation designation in s_desigManager.SelectDesignationsInArea(
+                tower.Area.BoundingBoxMin, tower.Area.BoundingBoxMax))
+            {
+                s_designationOriginsInArea.Add(designation.OriginTileCoord);
             }
         }
 
@@ -224,6 +277,7 @@ namespace AutoTerrainDesignations
             }
 
             BuildBuildingOccupiedTiles(tower);
+            BuildDesignationOriginsInArea(tower);
 
             int rampWidth = Math.Max(1, Math.Min(5, configuredRampWidth));
             List<RampCandidate> candidates = CollectRampCandidates(tower, tileDepths, rampWidth, reservedRampTiles: reservedRampTiles);
@@ -279,9 +333,22 @@ namespace AutoTerrainDesignations
 
             candidates.Sort((left, right) => left.Score.CompareTo(right.Score));
 
+            // Update pathability state once before the loop so every per-candidate reachability
+            // check sees a consistent bitmap without paying the update cost N times over.
+            if (s_vehiclePathFindingManager != null)
+            {
+                try { s_vehiclePathFindingManager.PathabilityProvider.UpdateChangedTiles(); }
+                catch { }
+            }
+
             bool hasFallback = false;
             RampCandidate fallbackCandidate = default;
             Tile2i fallbackTopRowTile = default;
+
+            // Cache BFS results by ramp-mouth position: many candidates generated from adjacent
+            // ore tiles share the same exit tile, so we avoid redundant BFS calls.
+            var testedMouthReachability = new Dictionary<Tile2i, bool>();
+            int reachabilityChecks = 0;
 
             foreach (RampCandidate candidate in candidates)
             {
@@ -291,7 +358,27 @@ namespace AutoTerrainDesignations
                     continue;
                 }
 
-                if (!IsRampMouthReachableFromTower(tower, dryTopRowTile))
+                if (!testedMouthReachability.TryGetValue(dryTopRowTile, out bool isMouthReachable))
+                {
+                    if (reachabilityChecks >= MAX_RAMP_REACHABILITY_CHECKS)
+                    {
+                        // Budget exhausted — treat remaining untested mouths as unreachable so the
+                        // best-scoring fallback (already recorded) will be used.
+                        if (!hasFallback)
+                        {
+                            hasFallback = true;
+                            fallbackCandidate = candidate;
+                            fallbackTopRowTile = dryTopRowTile;
+                        }
+                        continue;
+                    }
+
+                    isMouthReachable = IsRampMouthReachableFromTower(tower, dryTopRowTile);
+                    testedMouthReachability[dryTopRowTile] = isMouthReachable;
+                    reachabilityChecks++;
+                }
+
+                if (!isMouthReachable)
                 {
                     if (!hasFallback)
                     {
@@ -331,7 +418,24 @@ namespace AutoTerrainDesignations
             else
                 towerPos = new Tile2i((tower.Area.BoundingBoxMin.X + tower.Area.BoundingBoxMax.X) / 2, (tower.Area.BoundingBoxMin.Y + tower.Area.BoundingBoxMax.Y) / 2);
 
-            foreach (Tile2i oreTile in tileDepths.Keys)
+            // Only probe from perimeter ore tiles — those that have at least one non-ore cardinal
+            // neighbour.  Interior tiles (all four neighbours ore) either cannot produce a valid
+            // ramp exit within the maxAttachmentDepth limit, or produce a candidate equivalent to
+            // one already reachable from a nearby perimeter tile.  Skipping them can reduce the
+            // candidate set by ~7× for large designation areas with no correctness loss.
+            var perimeterOreTiles = new List<Tile2i>();
+            foreach (Tile2i t in tileDepths.Keys)
+            {
+                if (!tileDepths.ContainsKey(new Tile2i(t.X + 4, t.Y)) ||
+                    !tileDepths.ContainsKey(new Tile2i(t.X - 4, t.Y)) ||
+                    !tileDepths.ContainsKey(new Tile2i(t.X, t.Y + 4)) ||
+                    !tileDepths.ContainsKey(new Tile2i(t.X, t.Y - 4)))
+                {
+                    perimeterOreTiles.Add(t);
+                }
+            }
+
+            foreach (Tile2i oreTile in perimeterOreTiles)
             {
                 foreach (Tile2i direction in s_cardinalDirections)
                 {
@@ -1105,6 +1209,10 @@ namespace AutoTerrainDesignations
                 return;
             }
 
+            // Keep the per-pass designation cache consistent so that subsequent CollectRampCandidates
+            // calls within the same CreateAccessRamp invocation (shifted/narrow retries, multi-cluster
+            // loops) do not accidentally treat newly placed ramp tiles as free.
+            s_designationOriginsInArea.Add(tile);
             placedRampOrigins?.Add(tile);
         }
 
@@ -1120,7 +1228,7 @@ namespace AutoTerrainDesignations
                 return false;
             // Reject tiles that already have any designation (e.g. ramps placed by other sessions,
             // or in a previous tick by this session that weren't in reservedRampTiles yet).
-            if (s_desigManager != null && s_desigManager.GetDesignationAt(tile).HasValue)
+            if (s_designationOriginsInArea.Contains(new Tile2i(tile.X & -4, tile.Y & -4)))
                 return false;
             return true;
         }

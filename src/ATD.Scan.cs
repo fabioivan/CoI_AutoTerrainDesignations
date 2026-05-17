@@ -290,8 +290,8 @@ namespace AutoTerrainDesignations
             }
         }
 
-        private const int RAMP_ACCESS_SEARCH_MARGIN_TILES = 96;
-        private const int MAX_RAMP_ACCESS_SEARCH_TILES = 250000;
+        private const int RAMP_ACCESS_SEARCH_MARGIN_TILES = 48;
+        private const int MAX_RAMP_ACCESS_SEARCH_TILES = 20000;
         private static readonly RelTile2i[] s_rampAccessSearchDirections =
         {
             new RelTile2i(1, 0),
@@ -320,14 +320,6 @@ namespace AutoTerrainDesignations
             IPathabilityProvider pathabilityProvider = s_vehiclePathFindingManager.PathabilityProvider;
             VehiclePathFindingParams pfParams = s_excavatorPathFindingParams;
             Tile2i towerPosition = GetTowerPosition(tower, bbMin, bbMax);
-
-            try
-            {
-                pathabilityProvider.UpdateChangedTiles();
-            }
-            catch
-            {
-            }
 
             if (!TryFindNearestPathableTile(pathabilityProvider, pfParams, towerPosition, out Tile2i start))
             {

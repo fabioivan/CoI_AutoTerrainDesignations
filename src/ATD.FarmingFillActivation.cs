@@ -165,40 +165,8 @@ namespace AutoTerrainDesignations
                     }
 
                     Tile2i probeOrigin = new Tile2i(rimOrigin.X + dx[d], rimOrigin.Y + dy[d]);
-
-                    var existingAtProbe = s_desigManager.GetDesignationAt(probeOrigin);
-                    if (existingAtProbe.HasValue)
-                    {
-                        // When the probe tile has a designation, check that both corners on its edge
-                        // facing the rim tile are at the target height — terrain may not reflect the
-                        // designation target yet (work in progress).
-                        if (!ProbeEdgeFacingRimIsAtTargetHeight(existingAtProbe.Value.Data, d, targetHeight))
-                            continue;
-                    }
-                    else
-                    {
-                        float probeHeightSum = 0f;
-                        int probeCellCount = 0;
-                        try
-                        {
-                            foreach (Tile2i cell in EnumerateDesignatableTileCells(probeOrigin))
-                            {
-                                probeHeightSum += terrMgr.GetHeight(cell).Value.ToFloat();
-                                probeCellCount++;
-                            }
-                        }
-                        catch
-                        {
-                            continue;  // probe tile out of bounds or otherwise inaccessible
-                        }
-
-                        if (probeCellCount == 0)
-                            continue;
-
-                        float probeAvgHeight = probeHeightSum / probeCellCount;
-                        if (Math.Abs(probeAvgHeight - targetHeight) > FARMING_RIM_ALIGNMENT_HEIGHT_TOLERANCE)
-                            continue;
-                    }
+                    if (!ProbePassesRimCriteria(probeOrigin, d, targetHeight, terrMgr))
+                        continue;
 
                     DesignationData rimData = BuildFlatLevelDesignationData(rimOrigin, targetHeight);
                     if (s_desigManager.AddOrReplaceDesignation(s_levelingProto, rimData))
@@ -210,7 +178,105 @@ namespace AutoTerrainDesignations
                 }
             }
 
+            // Corner rim placement: diagonal tiles where two cardinal rims meet.
+            // A corner rim is placed only when both adjacent cardinal rims were placed and
+            // both probe tiles in the X and Y directions from the corner pass the probe criteria.
+            // xi indexes dx for the X component, yi indexes dy for the Y component.
+            int[,] cornerDirPairs = { { 0, 2 }, { 1, 2 }, { 0, 3 }, { 1, 3 } };
+            foreach (KeyValuePair<Tile2i, FarmingOriginSession> kvp in session.Origins)
+            {
+                Tile2i origin = kvp.Key;
+                int targetHeight = kvp.Value.TargetHeight;
+
+                for (int c = 0; c < 4; c++)
+                {
+                    int xi = cornerDirPairs[c, 0];
+                    int yi = cornerDirPairs[c, 1];
+                    int dxc = dx[xi];
+                    int dyc = dy[yi];
+
+                    Tile2i cornerRim = new Tile2i(origin.X + dxc, origin.Y + dyc);
+                    if (originSet.Contains(cornerRim))
+                        continue;
+
+                    if (!rimSeen.Add(cornerRim))
+                        continue;
+
+                    // Both adjacent cardinal rims must have been placed this pass.
+                    Tile2i cardinalX = new Tile2i(origin.X + dxc, origin.Y);
+                    Tile2i cardinalY = new Tile2i(origin.X, origin.Y + dyc);
+                    if (!session.RimAlignmentOrigins.Contains(cardinalX) || !session.RimAlignmentOrigins.Contains(cardinalY))
+                        continue;
+
+                    var existingAtCorner = s_desigManager.GetDesignationAt(cornerRim);
+                    if (existingAtCorner.HasValue)
+                    {
+                        if (existingAtCorner.Value.Prototype != s_levelingProto)
+                            continue;
+                        if (otherSessionOrigins.Contains(cornerRim))
+                            continue;
+                    }
+
+                    // Both probe tiles (one in the X direction, one in the Y direction from the corner) must pass.
+                    Tile2i probeX = new Tile2i(cornerRim.X + dxc, cornerRim.Y);
+                    Tile2i probeY = new Tile2i(cornerRim.X, cornerRim.Y + dyc);
+                    if (!ProbePassesRimCriteria(probeX, xi, targetHeight, terrMgr))
+                        continue;
+                    if (!ProbePassesRimCriteria(probeY, yi, targetHeight, terrMgr))
+                        continue;
+
+                    DesignationData cornerData = BuildFlatLevelDesignationData(cornerRim, targetHeight);
+                    if (s_desigManager.AddOrReplaceDesignation(s_levelingProto, cornerData))
+                    {
+                        placed++;
+                        session.RimAlignmentOrigins.Add(cornerRim);
+                        MarkPendingFillingAreaDirty(session);
+                    }
+                }
+            }
+
             return placed;
+        }
+
+        /// <summary>
+        /// Returns true if the probe tile at <paramref name="probeOrigin"/> passes the rim
+        /// placement criteria in direction <paramref name="probeDir"/>: either its designation
+        /// corners facing the rim are at <paramref name="targetHeight"/>, or its average terrain
+        /// height is within <see cref="FARMING_RIM_ALIGNMENT_HEIGHT_TOLERANCE"/>.
+        /// </summary>
+        private static bool ProbePassesRimCriteria(Tile2i probeOrigin, int probeDir, int targetHeight, TerrainManager terrMgr)
+        {
+            if (s_desigManager == null)
+                return false;
+
+            var existing = s_desigManager.GetDesignationAt(probeOrigin);
+            if (existing.HasValue)
+            {
+                // When the probe tile has a designation, check that both corners on its edge
+                // facing the rim tile are at the target height — terrain may not reflect the
+                // designation target yet (work in progress).
+                return ProbeEdgeFacingRimIsAtTargetHeight(existing.Value.Data, probeDir, targetHeight);
+            }
+
+            float heightSum = 0f;
+            int cellCount = 0;
+            try
+            {
+                foreach (Tile2i cell in EnumerateDesignatableTileCells(probeOrigin))
+                {
+                    heightSum += terrMgr.GetHeight(cell).Value.ToFloat();
+                    cellCount++;
+                }
+            }
+            catch
+            {
+                return false;  // probe tile out of bounds or otherwise inaccessible
+            }
+
+            if (cellCount == 0)
+                return false;
+
+            return Math.Abs(heightSum / cellCount - targetHeight) <= FARMING_RIM_ALIGNMENT_HEIGHT_TOLERANCE;
         }
 
         /// <summary>

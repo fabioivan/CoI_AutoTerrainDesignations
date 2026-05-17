@@ -75,3 +75,41 @@ Fix any errors before proceeding. Do not leave a change in a broken build state.
   ```powershell
   Get-ChildItem -LiteralPath "$env:APPDATA\Captain of Industry\Logs" -Filter "*.log" | Sort-Object LastWriteTime -Descending | Select-Object -First 1 | ForEach-Object { Get-Content -LiteralPath $_.FullName -Tail 220 }
   ```
+
+## Log analysis scripts
+
+### Confirm which mod build is loaded
+ATD and AFD each emit a version + DLL timestamp line early in every game session:
+```
+I HH:MM:SS,mmm SNNNNNN ~Mai: [ATD] AutoTerrainDesignations vX.Y.Zn | dll: YYYY-MM-DD HH:MM:SS
+I HH:MM:SS,mmm SNNNNNN ~Mai: [AFD] AutoForestryDesignations vX.Y.Zn | dll: YYYY-MM-DD HH:MM:SS
+```
+Compare the `dll:` timestamp against the DLL file's last-modified time to confirm the expected build was actually loaded. A mismatch means the game loaded an older build (stale bin output, wrong install path, etc.).
+
+To show only these version rows from the newest log:
+```powershell
+.\tools\get-mod-log.ps1 -DllOnly
+```
+
+### Extract all mod-tagged rows
+`tools/get-mod-log.ps1` grabs every line prefixed with `[ATD` or `[AFD` — version rows, warnings, errors, and performance logs — from the newest log (or a specified file):
+```powershell
+# All mod-tagged rows in the newest log
+.\tools\get-mod-log.ps1
+
+# Last 50 mod-tagged rows (useful for recent session activity)
+.\tools\get-mod-log.ps1 -Last 50
+
+# Use a specific log file
+.\tools\get-mod-log.ps1 -LogPath "C:\...\26-05-17_08-56-26_5925.log"
+```
+
+### Extract ATD farming performance rows only
+`tools/extract-atd-farming-perf.ps1` extracts only `[ATD Farming Perf]` lines:
+```powershell
+# All perf rows in the newest log
+.\tools\extract-atd-farming-perf.ps1
+
+# Last 20 perf rows
+.\tools\extract-atd-farming-perf.ps1 -Last 20
+```

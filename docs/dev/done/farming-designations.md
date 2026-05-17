@@ -198,6 +198,68 @@ ATD does **not** persist session state. On save:
 
 This makes farming tolerant of partial progress, player edits between sessions, and save migrations. The cost is that a running session must redo preparation analysis after every reload.
 
+---
+
+## Performance
+
+Large farming saves can produce sessions with 1000–2500 tracked origins, most of which remain inaccessible until excavators reach them. Three independent optimizations limit the per-tick cost.
+
+### Access check throttling
+
+`EnsureFarmingAccessForCurrentPhase` runs a BFS across pathable terrain to classify designations as reachable or not. The BFS is bounded by `MAX_FARMING_ACCESS_SEARCH_TILES = 250000` visited tiles and a search box padded `FARMING_ACCESS_SEARCH_MARGIN_TILES = 96` tiles beyond the tower and designation extents.
+
+Results are cached per **work-key** (an ordered string of origin coordinates and corner heights). The cache expires after a tick interval that scales with the active work-designation count:
+
+| Work count | Recheck interval |
+|---|---|
+| < 250 | `FARMING_ACCESS_RECHECK_TICKS = 10` ticks |
+| 250–999 | `FARMING_ACCESS_MEDIUM_RECHECK_TICKS = 30` ticks |
+| ≥ 1000 | `FARMING_ACCESS_LARGE_RECHECK_TICKS = 90` ticks |
+
+Cache misses also occur when the work key changes (a designation transitioned to a different phase, or a ramp was placed and the work set shrank). On a cache miss the full BFS runs; if the inaccessible set matches the previous `LastAccessRampRequestKey`, ramp placement is skipped — only a new inaccessible set triggers a new `CreateAccessRamp` call.
+
+### Building occupied tiles cache
+
+`CreateAccessRamp` calls `BuildBuildingOccupiedTiles(tower)` to collect tiles occupied by static buildings inside the tower area. This prevents ramps from overwriting existing structures. Internally the method calls `s_entitiesManager.GetAllEntitiesOfType<IStaticEntity>()`, which iterates the full entity collection.
+
+Without caching, this scan ran on every `CreateAccessRamp` call. For a large session that re-evaluates ramp placement roughly every 90 farming ticks (~9 seconds), and if another mod or the autosave holds the entity-collection lock at that moment, this can block for seconds to tens of seconds.
+
+The scan result is now cached per tower `EntityId` for `BUILDING_OCCUPIED_TILES_CACHE_TICKS = 600` farming ticks (~60 seconds). `BuildBuildingOccupiedTiles` returns immediately if the cached tower ID matches and fewer than 600 ticks have elapsed since the last rebuild; otherwise it rebuilds and updates `s_buildingOccupiedTilesCachedTowerId` / `s_buildingOccupiedTilesCachedTick`.
+
+The cache is invalidated automatically when:
+- A different tower calls `CreateAccessRamp` (tower ID mismatch → rebuild).
+- `s_farmingAutomationTickIndex` is reset to 0 at game reload (the cached tick becomes "in the future"; the `ticksSinceCache >= 0` guard treats this as a miss → rebuild).
+
+Building placement inside an active farming area is rare enough that a ~60-second staleness window is safe.
+
+### Pending filling area cache
+
+The pending fill area — the set of tiles that belong to queued `ReadyForFilling` or unactivated `Done` origins — is used for vehicle clear-out and pruning. Computing it requires iterating all origins and their designation tile footprints.
+
+`FarmingPreparationSession.CachedPendingFillingArea` stores the last-computed set. `PendingFillingAreaDirty` is a dirty bit that is set when any of the following change:
+- The origin map (origin added or removed)
+- Shoulder origins (`PreparationShoulderOrigins`)
+- Rim alignment origins (`RimAlignmentOrigins`)
+- Any origin's phase (`ReadyForFilling` activations, filling completions)
+
+`GetPendingFillingArea` returns the cached set immediately when `PendingFillingAreaDirty` is false; otherwise it rebuilds the set, stores it in `CachedPendingFillingArea`, and clears the dirty bit.
+
+### Performance logging
+
+Slow operations emit log lines prefixed `[ATD Farming Perf]` at Unity log level `Info`.
+
+| Log label | What it covers |
+|---|---|
+| `preparation pass` | Full `RunFarmingPreparationPass` duration |
+| `filling pass` | Full `RunFarmingFillingPass` duration |
+| `access check` | BFS-only portion of `EnsureFarmingAccessForCurrentPhase` |
+| `pending fill-area rebuild` | `GetPendingFillingArea` rebuild duration |
+| `preparation breakdown` | Detailed sub-timings for preparation: `capture`, `advance`, `access`, `summary`, `stateScan`, plus origin/analysis counts |
+
+A line is emitted only when the measured duration exceeds `FARMING_PERF_LOG_THRESHOLD_MS = 25` ms. To avoid flooding the log during sustained load, each session enforces a cooldown of `FARMING_PERF_LOG_COOLDOWN_TICKS = 5` ticks between consecutive messages of the same category (`LastFarmingPerfLogTick` / `LastFarmingPerfBreakdownLogTick`).
+
+The extraction script `tools/extract-atd-farming-perf.ps1` filters `[ATD Farming Perf]` lines from the newest (or a specified) log file.
+
 **On load**: if `ReEnableFarmingOnLoad` is enabled in settings, any tower whose managed designations are all flat level designations has farming automation re-enabled automatically.
 
 ---
