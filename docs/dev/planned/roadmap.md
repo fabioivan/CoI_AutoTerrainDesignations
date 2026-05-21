@@ -21,3 +21,9 @@ Review ramp building safety margin logic in more depth. Current margin is based 
 ## Make corridors go up then down if they are long
 
 ## Issue?: Vehichles auto-released can be assigned to the tower again (or to something else)
+
+## AutoHelper persistence layer + ATD implementation
+
+## Variable bottom flattening as parameter
+
+## Improve ramps?

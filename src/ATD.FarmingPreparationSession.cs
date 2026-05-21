@@ -1102,7 +1102,7 @@ namespace AutoTerrainDesignations
                     continue;
                 }
 
-                if (!IsLevelingDesignation(currentDesignation.Value))
+                if (!IsFarmingPreparationDesignation(currentDesignation.Value, originState))
                 {
                     // A hidden origin (ReadyForFilling / Done) has no active designation in the
                     // world, so a preparation-phase access ramp may have been placed at this tile
@@ -1115,7 +1115,7 @@ namespace AutoTerrainDesignations
                         continue;
                     }
                     droppedOrigins.Add(originState.Origin);
-                    session.LastDroppedOriginDetail = $"Dropped ({originState.Origin.X},{originState.Origin.Y}): designation was replaced with a non-leveling designation.";
+                    session.LastDroppedOriginDetail = $"Dropped ({originState.Origin.X},{originState.Origin.Y}): designation was replaced with an unexpected designation.";
                     continue;
                 }
 
@@ -1616,13 +1616,42 @@ namespace AutoTerrainDesignations
             {
                 originState.Phase = FarmingOriginPhase.ReadyForFilling;
                 MarkPendingFillingAreaDirty(session);
-                originState.Detail = "preparation complete; keeping target-1 designation active until tower-level filling";
+
+                // A dumping preparation designation (placed when all origin cells were below
+                // preparationHeight) is now fulfilled — trucks have raised the terrain to
+                // preparationHeight.  IsFarmingPreparationDesignation only accepts dumping
+                // designations while the origin is in the Preparing phase; once the phase is
+                // ReadyForFilling the check would return false and drop the origin on the very
+                // next tick.  Marking IsHiddenUntilFilling guards against that drop so the
+                // origin remains tracked until BeginFarmingFillingForSession replaces the
+                // preparation designation with the final fill designation.
+                var currentDesignation = s_desigManager != null
+                    ? s_desigManager.GetDesignationAt(originState.Origin)
+                    : default;
+                if (currentDesignation.HasValue && IsDumpingDesignation(currentDesignation.Value))
+                {
+                    originState.IsHiddenUntilFilling = true;
+                    originState.Detail = "preparation complete (dump raised terrain to target-1); hidden until tower-level filling";
+                }
+                else
+                {
+                    originState.Detail = "preparation complete; keeping target-1 designation active until tower-level filling";
+                }
                 return;
             }
 
             if (row.State == FarmingAnalysisState.Done)
             {
-                originState.Detail = "preparation hold remains active until all preparation is complete";
+                // Terrain is already at the final target height with a sufficient farmable band.
+                // The preparation designation (at targetHeight-1) must be removed — if it is a
+                // leveling designation it would otherwise mine the terrain *down* to targetHeight-1,
+                // undoing the ready state.  Transition straight to ReadyForFilling so the session
+                // can proceed to the filling phase.
+                originState.Phase = FarmingOriginPhase.ReadyForFilling;
+                MarkPendingFillingAreaDirty(session);
+                HideFarmingDesignationUntilFilling(
+                    originState,
+                    "preparation done; terrain already at target height; hidden until tower-level filling");
                 return;
             }
 

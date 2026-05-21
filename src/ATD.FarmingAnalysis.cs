@@ -350,6 +350,17 @@ namespace AutoTerrainDesignations
             return designation.Prototype.Id.Value == "DumpingDesignator";
         }
 
+        private static bool IsFarmingPreparationDesignation(
+            TerrainDesignation designation,
+            FarmingOriginSession originState)
+        {
+            if (IsLevelingDesignation(designation))
+                return true;
+
+            return originState.Phase == FarmingOriginPhase.Preparing
+                && IsDumpingDesignation(designation);
+        }
+
         private static bool TryGetFlatTargetHeight(DesignationData data, out int targetHeight)
         {
             int originHeight = data.OriginTargetHeight.Value;

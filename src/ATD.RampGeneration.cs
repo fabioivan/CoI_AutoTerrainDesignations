@@ -491,7 +491,154 @@ namespace AutoTerrainDesignations
                 }
             }
 
+            int anchoredCandidateCount = candidates.Count;
+            AddPerimeterAccessPathCandidates(candidates, tower, towerPos, tileDepths, rampWidth, lateralRetryOffset, reservedRampTiles);
+            if (candidates.Count > anchoredCandidateCount)
+            {
+                LogDebug(string.Format(
+                    "Access path candidate search: anchored={0}, perimeter={1}, total={2}, width={3}, lateralOffset={4}.",
+                    anchoredCandidateCount,
+                    candidates.Count - anchoredCandidateCount,
+                    candidates.Count,
+                    rampWidth,
+                    lateralRetryOffset));
+            }
+
             return candidates;
+        }
+
+        private static void AddPerimeterAccessPathCandidates(
+            List<RampCandidate> candidates,
+            IAreaManagingTower tower,
+            Tile2i towerPos,
+            Dict<Tile2i, int> clusterTiles,
+            int pathWidth,
+            int lateralRetryOffset,
+            HashSet<Tile2i>? reservedPathTiles)
+        {
+            var seen = new HashSet<string>();
+            foreach (RampCandidate candidate in candidates)
+                seen.Add(BuildRampCandidateKey(candidate));
+
+            foreach (Tile2i edgeTile in clusterTiles.Keys)
+            {
+                foreach (Tile2i direction in s_cardinalDirections)
+                {
+                    if (clusterTiles.ContainsKey(Offset(edgeTile, direction)))
+                        continue;
+
+                    Tile2i perpendicular = GetPerpendicular(direction);
+                    for (int startOffset = -pathWidth + 1; startOffset <= 0; startOffset++)
+                    {
+                        Tile2i firstEdgeTile = Offset(edgeTile, Scale(perpendicular, startOffset));
+                        if (lateralRetryOffset == 0)
+                        {
+                            TryAddPerimeterAccessPathCandidate(
+                                candidates,
+                                seen,
+                                tower,
+                                towerPos,
+                                clusterTiles,
+                                firstEdgeTile,
+                                direction,
+                                perpendicular,
+                                pathWidth,
+                                reservedPathTiles);
+                        }
+                        else
+                        {
+                            TryAddPerimeterAccessPathCandidate(
+                                candidates,
+                                seen,
+                                tower,
+                                towerPos,
+                                clusterTiles,
+                                Offset(firstEdgeTile, Scale(perpendicular, -lateralRetryOffset)),
+                                direction,
+                                perpendicular,
+                                pathWidth,
+                                reservedPathTiles);
+                            TryAddPerimeterAccessPathCandidate(
+                                candidates,
+                                seen,
+                                tower,
+                                towerPos,
+                                clusterTiles,
+                                Offset(firstEdgeTile, Scale(perpendicular, lateralRetryOffset)),
+                                direction,
+                                perpendicular,
+                                pathWidth,
+                                reservedPathTiles);
+                        }
+                    }
+                }
+            }
+        }
+
+        private static void TryAddPerimeterAccessPathCandidate(
+            List<RampCandidate> candidates,
+            HashSet<string> seen,
+            IAreaManagingTower tower,
+            Tile2i towerPos,
+            Dict<Tile2i, int> clusterTiles,
+            Tile2i firstEdgeTile,
+            Tile2i direction,
+            Tile2i perpendicular,
+            int pathWidth,
+            HashSet<Tile2i>? reservedPathTiles)
+        {
+            Tile2i[] edgeTiles = new Tile2i[pathWidth];
+            Tile2i[] firstPathTiles = new Tile2i[pathWidth];
+            bool[] laneHasCluster = Enumerable.Repeat(true, pathWidth).ToArray();
+            int[] laneAttachmentDepths = new int[pathWidth];
+
+            for (int lane = 0; lane < pathWidth; lane++)
+            {
+                Tile2i edgeTile = Offset(firstEdgeTile, Scale(perpendicular, lane));
+                Tile2i pathTile = Offset(edgeTile, direction);
+
+                if (!clusterTiles.ContainsKey(edgeTile))
+                    return;
+                if (clusterTiles.ContainsKey(pathTile))
+                    return;
+
+                int rampDepth = 1;
+                if (!IsFreeRampTile(tower, pathTile, clusterTiles, rampDepth, direction, reservedPathTiles))
+                    return;
+
+                edgeTiles[lane] = edgeTile;
+                firstPathTiles[lane] = pathTile;
+                laneAttachmentDepths[lane] = 0;
+            }
+
+            var candidate = new RampCandidate(
+                edgeTiles,
+                laneHasCluster,
+                direction,
+                firstPathTiles,
+                laneAttachmentDepths,
+                ScoreRampCandidate(towerPos, edgeTiles, direction, firstPathTiles, laneHasCluster, laneAttachmentDepths) - 100);
+
+            string key = BuildRampCandidateKey(candidate);
+            if (!seen.Add(key))
+                return;
+
+            candidates.Add(candidate);
+        }
+
+        private static string BuildRampCandidateKey(RampCandidate candidate)
+        {
+            var sb = new System.Text.StringBuilder();
+            sb.Append(candidate.Direction.X).Append(',').Append(candidate.Direction.Y);
+            for (int i = 0; i < candidate.OreTiles.Length; i++)
+            {
+                sb.Append('|')
+                    .Append(candidate.OreTiles[i].X).Append(',').Append(candidate.OreTiles[i].Y)
+                    .Append(':')
+                    .Append(candidate.LaneAttachmentDepths[i]);
+            }
+
+            return sb.ToString();
         }
 
         private static void TryAddRampCandidate(List<RampCandidate> candidates, IAreaManagingTower tower, Tile2i towerPos, Dict<Tile2i, int> tileDepths, Tile2i firstOreTile, Tile2i direction, Tile2i perpendicular, int rampWidth, HashSet<Tile2i>? reservedRampTiles)
@@ -811,7 +958,9 @@ namespace AutoTerrainDesignations
                 bool usesDumpingReadiness = RampProtoUsesDumpingReadiness(rampProto);
                 bool hasReadyMouthDesignation = usesMiningReadiness
                     ? reachedReferenceLevel && RowHasReadyMiningDesignation(rampProto, terrMgr, currentTiles, nwHeights, neHeights, seHeights, swHeights)
-                    : usesDumpingReadiness && RowHasReadyDumpingDesignation(rampProto, terrMgr, currentTiles, nwHeights, neHeights, seHeights, swHeights);
+                    : reachedReferenceLevel
+                        && usesDumpingReadiness
+                        && RowHasReadyDumpingDesignation(rampProto, terrMgr, currentTiles, nwHeights, neHeights, seHeights, swHeights);
 
                 bool isAboveSurfaceEverywhere = true;
                 for (int lane = 0; lane < laneCount; lane++)

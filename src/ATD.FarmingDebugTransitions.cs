@@ -170,9 +170,12 @@ namespace AutoTerrainDesignations
 
             int preparationHeight = targetHeight - 1;
             DesignationData preparationData = BuildFlatLevelDesignationData(origin, preparationHeight);
+            TerrainDesignationProto preparationProto = ShouldUseDumpingForFarmingPreparation(origin, preparationHeight)
+                ? s_dumpingProto!
+                : s_levelingProto;
 
             s_farmingDebugStoredDesignations[origin] = new FarmingDebugStoredDesignation(originalData, targetHeight);
-            if (s_desigManager.AddOrReplaceDesignation(s_levelingProto, preparationData))
+            if (s_desigManager.AddOrReplaceDesignation(preparationProto, preparationData))
             {
                 shoulderCount = PlaceFarmingPreparationShoulders(origin, preparationHeight, session);
                 return true;
@@ -181,6 +184,24 @@ namespace AutoTerrainDesignations
             s_farmingDebugStoredDesignations.Remove(origin);
             shoulderCount = 0;
             return false;
+        }
+
+        private static bool ShouldUseDumpingForFarmingPreparation(Tile2i origin, int preparationHeight)
+        {
+            if (s_desigManager == null || s_dumpingProto == null)
+                return false;
+
+            var terrMgr = s_desigManager.TerrainManager;
+            foreach (Tile2i cell in EnumerateDesignatableTileCells(origin))
+            {
+                if (!terrMgr.IsValidCoord(cell))
+                    return false;
+
+                if (terrMgr.GetHeight(cell).Value.ToFloat() >= preparationHeight - FARMING_HEIGHT_EPSILON)
+                    return false;
+            }
+
+            return true;
         }
 
         private static int PlaceFarmingPreparationShoulders(
