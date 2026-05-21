@@ -807,8 +807,11 @@ namespace AutoTerrainDesignations
 
                 AddRampRowPlans(plannedTiles, currentTiles, nwHeights, neHeights, seHeights, swHeights);
                 bool reachedReferenceLevel = BoundaryHeightsMatch(nextBoundaryHeights, referenceBoundaryHeights);
-                bool hasReadyMouthDesignation = reachedReferenceLevel
-                    && RowHasReadyMiningDesignation(rampProto, terrMgr, currentTiles, nwHeights, neHeights, seHeights, swHeights);
+                bool usesMiningReadiness = RampProtoUsesMiningReadiness(rampProto);
+                bool usesDumpingReadiness = RampProtoUsesDumpingReadiness(rampProto);
+                bool hasReadyMouthDesignation = usesMiningReadiness
+                    ? reachedReferenceLevel && RowHasReadyMiningDesignation(rampProto, terrMgr, currentTiles, nwHeights, neHeights, seHeights, swHeights)
+                    : usesDumpingReadiness && RowHasReadyDumpingDesignation(rampProto, terrMgr, currentTiles, nwHeights, neHeights, seHeights, swHeights);
 
                 bool isAboveSurfaceEverywhere = true;
                 for (int lane = 0; lane < laneCount; lane++)
@@ -822,7 +825,9 @@ namespace AutoTerrainDesignations
                 }
 
                 if (hasReadyMouthDesignation
-                    || (isAboveSurfaceEverywhere && (!reachedReferenceLevel || !RampProtoUsesMiningReadiness(rampProto))))
+                    || (isAboveSurfaceEverywhere
+                        && ((usesMiningReadiness && !reachedReferenceLevel)
+                            || (!usesMiningReadiness && !usesDumpingReadiness))))
                 {
                     if (!dryRun)
                     {
@@ -894,6 +899,11 @@ namespace AutoTerrainDesignations
             return s_desigManager != null && rampProto.IsFulfilledMiningFn.HasValue;
         }
 
+        private static bool RampProtoUsesDumpingReadiness(TerrainDesignationProto rampProto)
+        {
+            return s_desigManager != null && rampProto.IsFulfilledDumpingFn.HasValue;
+        }
+
         private static bool RowHasReadyMiningDesignation(
             TerrainDesignationProto rampProto,
             TerrainManager terrMgr,
@@ -947,6 +957,61 @@ namespace AutoTerrainDesignations
 
             return miningFulfilledBitmap != ALL_DESIGNATION_TILES_MASK
                 && (miningFulfilledBitmap & READY_TO_MINE_MASK) != 0;
+        }
+
+        private static bool RowHasReadyDumpingDesignation(
+            TerrainDesignationProto rampProto,
+            TerrainManager terrMgr,
+            Tile2i[] tiles,
+            int[] nwHeights,
+            int[] neHeights,
+            int[] seHeights,
+            int[] swHeights)
+        {
+            if (!RampProtoUsesDumpingReadiness(rampProto))
+                return false;
+
+            for (int lane = 0; lane < tiles.Length; lane++)
+            {
+                DesignationData data = new DesignationData(
+                    tiles[lane],
+                    new HeightTilesI(nwHeights[lane]),
+                    new HeightTilesI(neHeights[lane]),
+                    new HeightTilesI(seHeights[lane]),
+                    new HeightTilesI(swHeights[lane]));
+                if (IsProspectiveDumpingDesignationReady(rampProto, terrMgr, data))
+                    return true;
+            }
+
+            return false;
+        }
+
+        private static bool IsProspectiveDumpingDesignationReady(
+            TerrainDesignationProto rampProto,
+            TerrainManager terrMgr,
+            DesignationData data)
+        {
+            if (s_desigManager == null || !rampProto.IsFulfilledDumpingFn.HasValue)
+                return false;
+
+            uint dumpingFulfilledBitmap = 0;
+            for (int y = 0; y <= 4; y++)
+            {
+                for (int x = 0; x <= 4; x++)
+                {
+                    Tile2i tile = data.OriginTile + new RelTile2i(x, y);
+                    Tile2iAndIndex tileAndIndex = terrMgr.ExtendTileIndex(tile);
+                    HeightTilesF targetHeight = GetDesignationTargetHeightAt(data, x, y);
+                    bool upperEdge = x == 4 || y == 4;
+                    if (rampProto.IsFulfilledDumpingFn.Value(s_desigManager, tileAndIndex, targetHeight, upperEdge))
+                    {
+                        dumpingFulfilledBitmap |= GetDesignationMask(x, y);
+                    }
+                }
+            }
+
+            return dumpingFulfilledBitmap != ALL_DESIGNATION_TILES_MASK
+                && (dumpingFulfilledBitmap & READY_TO_MINE_MASK) != 0;
         }
 
         private static HeightTilesF GetDesignationTargetHeightAt(DesignationData data, int x, int y)

@@ -203,7 +203,7 @@ namespace AutoTerrainDesignations
             }
 
             int placed = 0;
-            foreach (var shoulder in EnumerateNeededFarmingPreparationShoulders(origin, preparationHeight))
+            foreach (var shoulder in EnumerateNeededFarmingPreparationShoulders(origin, preparationHeight, allFarmingOrigins))
             {
                 Tile2i shoulderOrigin = shoulder.Key;
                 if (!IsFarmingDesignationOriginValid(s_desigManager.TerrainManager, shoulderOrigin))
@@ -215,6 +215,10 @@ namespace AutoTerrainDesignations
                 var existing = s_desigManager.GetDesignationAt(shoulderOrigin);
                 bool isOwnedShoulder = session.PreparationShoulderOrigins.Contains(shoulderOrigin);
                 if (existing.HasValue && !isOwnedShoulder)
+                    continue;
+
+                if (IsDiagonalFarmingPreparationShoulder(shoulder.Value)
+                    && !HasAdjacentCardinalPreparationShoulders(session, origin, shoulder.Value))
                     continue;
 
                 if (s_desigManager.AddOrReplaceDesignation(
@@ -232,7 +236,8 @@ namespace AutoTerrainDesignations
 
         private static IEnumerable<KeyValuePair<Tile2i, FarmingPreparationShoulderSide>> EnumerateNeededFarmingPreparationShoulders(
             Tile2i origin,
-            int preparationHeight)
+            int preparationHeight,
+            HashSet<Tile2i> allFarmingOrigins)
         {
             if (s_desigManager == null)
                 yield break;
@@ -260,23 +265,72 @@ namespace AutoTerrainDesignations
                     new Tile2i(origin.X, origin.Y + 4),
                     FarmingPreparationShoulderSide.South);
 
-            // Diagonal corner shoulders: only placed when both adjacent cardinal shoulders are needed.
-            if (needsNorth && needsWest)
+            // Diagonal shoulders are only valid at true outside corners of the tracked farming
+            // cluster. If a neighboring farming origin exists in either adjacent direction, this
+            // diagonal tile is actually that neighbor's cardinal shoulder and would create a red
+            // edge instead of connecting along both sloped ramp edges.
+            bool hasWestNeighbor = allFarmingOrigins.Contains(new Tile2i(origin.X - 4, origin.Y));
+            bool hasEastNeighbor = allFarmingOrigins.Contains(new Tile2i(origin.X + 4, origin.Y));
+            bool hasNorthNeighbor = allFarmingOrigins.Contains(new Tile2i(origin.X, origin.Y - 4));
+            bool hasSouthNeighbor = allFarmingOrigins.Contains(new Tile2i(origin.X, origin.Y + 4));
+
+            if (needsNorth && needsWest && !hasNorthNeighbor && !hasWestNeighbor)
                 yield return new KeyValuePair<Tile2i, FarmingPreparationShoulderSide>(
                     new Tile2i(origin.X - 4, origin.Y - 4),
                     FarmingPreparationShoulderSide.NorthWest);
-            if (needsNorth && needsEast)
+            if (needsNorth && needsEast && !hasNorthNeighbor && !hasEastNeighbor)
                 yield return new KeyValuePair<Tile2i, FarmingPreparationShoulderSide>(
                     new Tile2i(origin.X + 4, origin.Y - 4),
                     FarmingPreparationShoulderSide.NorthEast);
-            if (needsSouth && needsEast)
+            if (needsSouth && needsEast && !hasSouthNeighbor && !hasEastNeighbor)
                 yield return new KeyValuePair<Tile2i, FarmingPreparationShoulderSide>(
                     new Tile2i(origin.X + 4, origin.Y + 4),
                     FarmingPreparationShoulderSide.SouthEast);
-            if (needsSouth && needsWest)
+            if (needsSouth && needsWest && !hasSouthNeighbor && !hasWestNeighbor)
                 yield return new KeyValuePair<Tile2i, FarmingPreparationShoulderSide>(
                     new Tile2i(origin.X - 4, origin.Y + 4),
                     FarmingPreparationShoulderSide.SouthWest);
+        }
+
+        private static bool IsDiagonalFarmingPreparationShoulder(FarmingPreparationShoulderSide side)
+        {
+            return side == FarmingPreparationShoulderSide.NorthWest
+                || side == FarmingPreparationShoulderSide.NorthEast
+                || side == FarmingPreparationShoulderSide.SouthEast
+                || side == FarmingPreparationShoulderSide.SouthWest;
+        }
+
+        private static bool HasAdjacentCardinalPreparationShoulders(
+            FarmingPreparationSession session,
+            Tile2i origin,
+            FarmingPreparationShoulderSide side)
+        {
+            Tile2i first;
+            Tile2i second;
+            switch (side)
+            {
+                case FarmingPreparationShoulderSide.NorthWest:
+                    first = new Tile2i(origin.X - 4, origin.Y);
+                    second = new Tile2i(origin.X, origin.Y - 4);
+                    break;
+                case FarmingPreparationShoulderSide.NorthEast:
+                    first = new Tile2i(origin.X + 4, origin.Y);
+                    second = new Tile2i(origin.X, origin.Y - 4);
+                    break;
+                case FarmingPreparationShoulderSide.SouthEast:
+                    first = new Tile2i(origin.X + 4, origin.Y);
+                    second = new Tile2i(origin.X, origin.Y + 4);
+                    break;
+                case FarmingPreparationShoulderSide.SouthWest:
+                    first = new Tile2i(origin.X - 4, origin.Y);
+                    second = new Tile2i(origin.X, origin.Y + 4);
+                    break;
+                default:
+                    return false;
+            }
+
+            return session.PreparationShoulderOrigins.Contains(first)
+                && session.PreparationShoulderOrigins.Contains(second);
         }
 
         // Checks the 2×2 block starting at (startX, startY) — the center 4 tiles of the

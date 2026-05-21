@@ -1,4 +1,6 @@
 v0.4.0o | 2026-05-19 [unreleased]
+* Fixed: farming preparation corner shoulders are now only placed at true outside corners of the tracked farming cluster, after both adjacent cardinal shoulder ramps exist; this preserves proper corner closure without creating red-edge corner designations inside multi-tile preparation pads
+* Fixed: farming filling access ramps now use the dumping fulfillment probe when planning a ramp mouth, so dump ramps continue until they connect to/cross existing terrain instead of stopping early as a floating lip above the ground
 * Changed: visible UI wording now uses **Mining designations** for the mining panel, **Ore quality** for the ore filtering preset, and sentence-case panel headings such as **Ore composition** and **Farmland preparation**; technical settings keys and console command names remain unchanged for compatibility
 * Changed: ramp warning notifications now use the same designation icon as the **Create Designations** button while retaining warning notification styling
 * Changed: farming final filling and final rim alignment now use dumping designations instead of leveling designations, and filling completion checks use dump fulfillment so completed fill orders can transition to `Done`
